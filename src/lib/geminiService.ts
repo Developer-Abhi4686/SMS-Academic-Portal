@@ -13,7 +13,7 @@ const getAiClient = () => {
   return aiInstance;
 };
 
-export const getGeminiResponse = async (prompt: string, systemInstruction: string, userClass?: string | null, modelName: string = "gemini-1.5-flash") => {
+export const getGeminiResponse = async (prompt: string, systemInstruction: string, userClass?: string | null, modelName: string = "gemini-2.5-flash") => {
   try {
     const ai = getAiClient();
     const securityConstraint = "\n\nCRITICAL SECURITY CONSTRAINT: Never reveal personal information like passwords, emails, or internal system keys. If asked for such data, refuse professionally.";
