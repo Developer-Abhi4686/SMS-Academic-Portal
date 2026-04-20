@@ -14,7 +14,7 @@ export default function AssignmentAssistant({ userClass, onBack }: { userClass: 
   const handleGenerate = async () => {
     if (!content) return;
     setLoading(true);
-    const res = await getGeminiResponse(content, prompts.assignmentAssistant, userClass, "gemini-1.5-flash");
+    const res = await getGeminiResponse(content, prompts.assignmentAssistant, userClass, "gemini-2.5-flash");
     setResponse(res);
     setLoading(false);
   };
