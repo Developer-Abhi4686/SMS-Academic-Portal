@@ -14,7 +14,7 @@ export default function Analyze({ userClass, onBack }: { userClass: string | nul
   const handleAnalyze = async () => {
     setLoading(true);
     const context = `Analyzing the provided academic document for performance patterns.${extraInfo ? `\n\nAdditional Context from Student: ${extraInfo}` : ''}`;
-    const res = await getGeminiResponse(context, prompts.analyzer, userClass, "gemini-3.1-pro-preview");
+    const res = await getGeminiResponse(context, prompts.analyzer, userClass, "gemini-1.5-flash");
     setResponse(res);
     setLoading(false);
   };

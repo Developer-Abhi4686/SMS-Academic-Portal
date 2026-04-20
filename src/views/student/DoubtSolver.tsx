@@ -24,7 +24,7 @@ export default function DoubtSolver({ userClass, onBack }: { userClass: string |
     if (!subject || !chapterName) return;
     setLoading(true);
     const prompt = `Subject: ${subject}\nChapter: ${chapter}\nChapter Name: ${chapterName}\nPlease provide the most probable conceptual doubt a student might have in this chapter and solve it in the simplest possible language.`;
-    const res = await getGeminiResponse(prompt, prompts.doubtSolver, userClass, "gemini-3.1-pro-preview");
+    const res = await getGeminiResponse(prompt, prompts.doubtSolver, userClass, "gemini-1.5-flash");
     setResponse(res);
     setLoading(false);
   };
@@ -32,7 +32,7 @@ export default function DoubtSolver({ userClass, onBack }: { userClass: string |
   const handleAssistantSubmit = async () => {
     if (!doubtText) return;
     setLoading(true);
-    const res = await getGeminiResponse(doubtText, prompts.doubtSolver, userClass, "gemini-3.1-pro-preview");
+    const res = await getGeminiResponse(doubtText, prompts.doubtSolver, userClass, "gemini-1.5-flash");
     setResponse(res);
     setLoading(false);
   };
