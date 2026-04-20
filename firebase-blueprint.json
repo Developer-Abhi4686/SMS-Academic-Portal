@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string", "description": "User's full name" },
+        "email": { "type": "string", "description": "User's email address" },
+        "role": { "type": "string", "enum": ["teacher", "student"], "description": "User's role" },
+        "userClass": { "type": "string", "description": "User's class" },
+        "section": { "type": "string", "description": "User's section" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Account creation time" }
+      },
+      "required": ["fullName", "email", "role", "createdAt"]
+    },
+    "Memory": {
+      "title": "Memory",
+      "description": "Saved work or items for the user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner's UID" },
+        "type": { "type": "string", "enum": ["quiz", "lesson-plan", "test-paper", "sample-paper", "doubt", "assignment"], "description": "Type of item" },
+        "title": { "type": "string", "description": "User-assigned or auto-generated title" },
+        "content": { "type": "string", "description": "The logic/text content (JSON stringified)" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Time of saving" }
+      },
+      "required": ["userId", "type", "title", "content", "createdAt"]
+    },
+    "Student": {
+      "title": "Student",
+      "description": "Student record in a class section",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Student full name" }
+      },
+      "required": ["name"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile documents"
+    },
+    "/memories/{memoryId}": {
+      "schema": "Memory",
+      "description": "Collection of saved work"
+    },
+    "/students_8A/{studentId}": { "schema": "Student", "description": "Class 8A students" },
+    "/students_8B/{studentId}": { "schema": "Student", "description": "Class 8B students" },
+    "/students_8C/{studentId}": { "schema": "Student", "description": "Class 8C students" },
+    "/students_8D/{studentId}": { "schema": "Student", "description": "Class 8D students" },
+    "/students_8E/{studentId}": { "schema": "Student", "description": "Class 8E students" },
+    "/students_9A/{studentId}": { "schema": "Student", "description": "Class 9A students" },
+    "/students_9B/{studentId}": { "schema": "Student", "description": "Class 9B students" },
+    "/students_9C/{studentId}": { "schema": "Student", "description": "Class 9C students" },
+    "/students_9D/{studentId}": { "schema": "Student", "description": "Class 9D students" },
+    "/students_9E/{studentId}": { "schema": "Student", "description": "Class 9E students" },
+    "/students_10A/{studentId}": { "schema": "Student", "description": "Class 10A students" },
+    "/students_10B/{studentId}": { "schema": "Student", "description": "Class 10B students" },
+    "/students_10C/{studentId}": { "schema": "Student", "description": "Class 10C students" },
+    "/students_10D/{studentId}": { "schema": "Student", "description": "Class 10D students" },
+    "/students_10E/{studentId}": { "schema": "Student", "description": "Class 10E students" }
+  }
+}

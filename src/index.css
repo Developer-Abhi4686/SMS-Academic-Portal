@@ -1,0 +1,69 @@
+@import "tailwindcss";
+@import "katex/dist/katex.min.css";
+
+@theme {
+  --color-primary: #1a237e; /* Indigo */
+  --color-primary-light: #3949ab;
+  --color-accent: #00b8d4; /* Bright Cyan instead of Gold */
+  --color-accent-dark: #0097a7;
+  --color-brand-gradient: linear-gradient(135deg, #1a237e 0%, #303f9f 100%);
+}
+
+:root {
+  background-color: #f8f9fa;
+  color: #1a1a1a;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body {
+  margin: 0;
+  overflow-x: hidden;
+  background-color: #f8f9fa;
+  transition: background-color 0.3s ease;
+}
+
+/* Updated High Density card styles */
+.glass {
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.glass-light {
+  background: #fdfdfd;
+  border: 1px solid #dee2e6;
+  transition: background-color 0.3s ease;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f8f9fa;
+}
+::-webkit-scrollbar-thumb {
+  background: #1a237e;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3949ab;
+}
+
+.markdown-body ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+}
+
+.markdown-body ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+}
+
+.markdown-body h1, .markdown-body h2, .markdown-body h3 {
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}

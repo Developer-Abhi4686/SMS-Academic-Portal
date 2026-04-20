@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SMS Academīc Portal</title>
+    <script>
+      // Shim global and common Node.js variables for library compatibility.
+      // This also fixes the "Cannot set property fetch" error by providing a no-op setter.
+      (function() {
+        var g = typeof globalThis !== 'undefined' ? globalThis : window;
+        g.global = g;
+        g.process = g.process || { env: { NODE_ENV: 'development' } };
+        
+        try {
+          var originalFetch = g.fetch;
+          if (originalFetch) {
+            Object.defineProperty(g, 'fetch', {
+              get: function() { return originalFetch; },
+              set: function() { 
+                // Silently ignore attempts to overwrite fetch to prevent the "only has a getter" TypeError.
+                return true; 
+              },
+              configurable: true,
+              enumerable: true
+            });
+          }
+        } catch (e) {
+          // Fallback if the property is non-configurable
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
