@@ -14,7 +14,7 @@ export default function TestPaperGenerator({ userClass, onBack }: { userClass: s
   const handleGenerate = async () => {
     if (!desc) return;
     setLoading(true);
-    const res = await getGeminiResponse(`Generate a full test paper based on: ${desc}`, prompts.testPaperGenerator, userClass, "gemini-1.5-flash");
+    const res = await getGeminiResponse(`Generate a full test paper based on: ${desc}`, prompts.testPaperGenerator, userClass, "gemini-2.5-flash");
     setResponse(res);
     setLoading(false);
   };
