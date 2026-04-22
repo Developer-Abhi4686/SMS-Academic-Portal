@@ -13,7 +13,7 @@ export default function SamplePaperGenerator({ userClass, onBack }: { userClass:
   const handleGenerate = async () => {
     if (!desc) return;
     setLoading(true);
-    const res = await getGeminiResponse(`Generate a sample practice paper for: ${desc}`, prompts.samplePaperGenerator, userClass, "gemini-2.5-flash");
+    const res = await getGeminiResponse(`Generate a sample practice paper for: ${desc}`, prompts.samplePaperGenerator, userClass, "gemini-3.1-flash-lite-preview");
     setResponse(res);
     setLoading(false);
   };
