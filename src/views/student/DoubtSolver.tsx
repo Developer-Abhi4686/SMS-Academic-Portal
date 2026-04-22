@@ -31,7 +31,7 @@ export default function DoubtSolver({ userClass, onBack }: { userClass: string |
   const handleAssistantSubmit = async () => {
     if (!doubtText) return;
     setLoading(true);
-    const res = await getGeminiResponse(doubtText, prompts.doubtSolver, userClass, "gemini-2.5-flash");
+    const res = await getGeminiResponse(doubtText, prompts.doubtSolver, userClass, "gemini-3.1-flash-lite-preview");
     setResponse(res);
     setLoading(false);
   };
