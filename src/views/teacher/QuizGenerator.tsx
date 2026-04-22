@@ -16,7 +16,7 @@ export default function QuizGenerator({ userClass, onBack }: { userClass: string
     if (!subject || !chapter) return;
     setLoading(true);
     const prompt = `Subject: ${subject}\nChapter: ${chapter}\nTARGET DIFFICULTY: ${difficulty.toUpperCase()}\n\nTASK: Generate exactly 10 questions that are strictly categorized as ${difficulty.toUpperCase()} level. Do not include any other difficulty levels.`;
-    const res = await getGeminiResponse(prompt, prompts.quizGenerator, userClass, "gemini-2.5-flash");
+    const res = await getGeminiResponse(prompt, prompts.quizGenerator, userClass, "gemini-3.1-flash-lite-preview");
     setResponse(res);
     setLoading(false);
   };
