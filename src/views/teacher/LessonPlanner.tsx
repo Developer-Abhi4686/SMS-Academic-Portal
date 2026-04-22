@@ -13,7 +13,7 @@ export default function LessonPlanner({ userClass, onBack }: { userClass: string
   const handleGenerate = async () => {
     if (!topic) return;
     setLoading(true);
-    const res = await getGeminiResponse(`Generate a lesson plan for: ${topic}`, prompts.lessonPlanner, userClass, "gemini-2.5-flash");
+    const res = await getGeminiResponse(`Generate a lesson plan for: ${topic}`, prompts.lessonPlanner, userClass, "gemini-3.1-flash-lite-preview");
     setResponse(res);
     setLoading(false);
   };
