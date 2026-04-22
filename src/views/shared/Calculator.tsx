@@ -12,7 +12,9 @@ import {
   Equal,
   RotateCcw,
   Zap,
-  ChevronRight
+  ChevronRight,
+  ShieldCheck,
+  Cpu
 } from 'lucide-react';
 
 type CalcMode = 'selection' | 'standard' | 'percentage';
@@ -47,8 +49,6 @@ export default function Calculator({ onBack }: { onBack?: () => void }) {
 
   const calculateStandard = () => {
     try {
-      // Basic math evaluation (using eval for simplicity here, in production use a math library)
-      // We'll replace scientific strings with Math functions
       let safeEq = display
         .replace(/√/g, 'Math.sqrt')
         .replace(/cosec\(/g, '1/Math.sin(')
@@ -59,7 +59,6 @@ export default function Calculator({ onBack }: { onBack?: () => void }) {
         .replace(/e/g, 'Math.E')
         .replace(/\^/g, '**');
 
-      // Simple sanitization: only allow math chars
       if (/[^0-9+\-*/().√MathPIE^ ,]/.test(safeEq)) {
           throw new Error("Invalid Input");
       }
@@ -68,7 +67,7 @@ export default function Calculator({ onBack }: { onBack?: () => void }) {
       setEquation(display + ' =');
       setDisplay(String(Number(res.toFixed(8))));
     } catch (e) {
-      setDisplay('Error');
+      setDisplay('ERR_SIG');
     }
   };
 
@@ -93,15 +92,12 @@ export default function Calculator({ onBack }: { onBack?: () => void }) {
   const calculatePercentage = () => {
     let totalObtained = 0;
     let totalMax = 0;
-    let validCount = 0;
-
     marks.forEach(m => {
       const o = parseFloat(m.obtained);
       const mx = parseFloat(m.max);
       if (!isNaN(o) && !isNaN(mx) && mx > 0) {
         totalObtained += o;
         totalMax += mx;
-        validCount++;
       }
     });
 
@@ -119,47 +115,56 @@ export default function Calculator({ onBack }: { onBack?: () => void }) {
 
   if (mode === 'selection') {
     return (
-      <div className="max-w-2xl mx-auto space-y-8">
-        <header className="flex items-center gap-4">
-          <button 
-            onClick={onBack}
-            className="p-2 -ml-2 text-[#1a237e] hover:bg-[#f0f2ff] rounded-xl transition-colors"
-          >
-            <ArrowLeft className="w-6 h-6" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-black text-[#1a237e] uppercase tracking-tight">Academic Tools</h1>
-            <p className="text-[#636e72] font-bold text-xs uppercase tracking-widest">Select Calculator Mode</p>
+      <div className="max-w-4xl mx-auto space-y-12">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-6">
+            {onBack && (
+              <button 
+                onClick={onBack}
+                className="p-4 bg-white border border-[#e7e5e4] text-[#943a1a] rounded-2xl shadow-sm hover:shadow-md transition-all"
+              >
+                <ArrowLeft className="w-5 h-5" />
+              </button>
+            )}
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Cpu className="w-3 h-3 text-[#943a1a] opacity-40" />
+                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#943a1a]">Precision Hardware</span>
+              </div>
+              <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter">Academic <span className="font-editorial text-[#943a1a]">Calculators</span></h1>
+              <p className="text-[#57534e] text-xs font-medium">Statistical and Scientific computation modules.</p>
+            </div>
           </div>
         </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <motion.button
-            whileHover={{ y: -5 }}
+            whileHover={{ y: -8, scale: 1.02 }}
             onClick={() => setMode('percentage')}
-            className="bg-white p-8 rounded-3xl border-2 border-[#dee2e6] flex flex-col items-center text-center gap-6 shadow-xl hover:border-[#1a237e] transition-all group"
+            className="bg-white p-12 rounded-[3.5rem] border border-[#e7e5e4] flex flex-col items-center text-center gap-8 shadow-sm hover:border-[#943a1a] hover:shadow-2xl transition-all group"
           >
-            <div className="w-16 h-16 bg-[#f0f2ff] rounded-2xl flex items-center justify-center text-[#1a237e] group-hover:scale-110 transition-transform">
+            <div className="w-20 h-20 bg-[#f7f5f2] rounded-[2rem] flex items-center justify-center text-[#943a1a] group-hover:bg-[#943a1a] group-hover:text-white transition-all duration-500 shadow-inner">
               <Percent className="w-8 h-8" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-[#1a237e] uppercase tracking-tight mb-2">Percentage Calculator</h2>
-              <p className="text-[#636e72] text-xs font-medium leading-relaxed">Calculate final academic percentages across multiple subjects easily.</p>
+              <h2 className="text-2xl font-black uppercase tracking-tighter mb-3">Academic Yield</h2>
+              <p className="text-[#57534e] text-[10px] font-black uppercase tracking-widest opacity-60 leading-relaxed">Percentage & Grade Analysis Module</p>
             </div>
           </motion.button>
 
           <motion.button
-            whileHover={{ y: -5 }}
+            whileHover={{ y: -8, scale: 1.02 }}
             onClick={() => setMode('standard')}
-            className="bg-white p-8 rounded-3xl border-2 border-[#dee2e6] flex flex-col items-center text-center gap-6 shadow-xl hover:border-[#3949ab] transition-all group"
+            className="bg-[#1c1917] p-12 rounded-[3.5rem] border border-[#1c1917] flex flex-col items-center text-center gap-8 shadow-2xl hover:shadow-[#943a1a]/20 transition-all group overflow-hidden relative"
           >
-            <div className="w-16 h-16 bg-[#f0f2ff] rounded-2xl flex items-center justify-center text-[#1a237e] group-hover:scale-110 transition-transform">
+            <div className="w-20 h-20 bg-white/10 rounded-[2rem] flex items-center justify-center text-white group-hover:text-[#f59e0b] backdrop-blur-xl transition-all duration-500 border border-white/10 relative z-10">
               <CalcIcon className="w-8 h-8" />
             </div>
-            <div>
-              <h2 className="text-xl font-black text-[#1a237e] uppercase tracking-tight mb-2">Standard Calculator</h2>
-              <p className="text-[#636e72] text-xs font-medium leading-relaxed">Advanced scientific calculator with support for complex math operations.</p>
+            <div className="relative z-10">
+              <h2 className="text-2xl font-black uppercase tracking-tighter text-white mb-3">Scientific Node</h2>
+              <p className="text-white/40 text-[10px] font-black uppercase tracking-widest leading-relaxed">Advanced Arithmetic & Trigonometric Layer</p>
             </div>
+            <div className="absolute bottom-[-10%] right-[-10%] w-48 h-48 bg-[#943a1a]/10 rounded-full blur-[60px]" />
           </motion.button>
         </div>
       </div>
@@ -168,170 +173,156 @@ export default function Calculator({ onBack }: { onBack?: () => void }) {
 
   if (mode === 'percentage') {
     return (
-      <div className="max-w-2xl mx-auto space-y-8">
-        <header className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="max-w-3xl mx-auto space-y-12">
+        <header className="flex items-center justify-between bg-white p-6 md:p-8 rounded-[3rem] border border-[#e7e5e4] shadow-sm">
+          <div className="flex items-center gap-6">
             <button 
               onClick={() => { setMode('selection'); resetPercentage(); }}
-              className="p-2 -ml-2 text-[#1a237e] hover:bg-[#f0f2ff] rounded-xl transition-colors"
+              className="p-3 bg-[#f7f5f2] rounded-2xl text-[#943a1a] hover:bg-white border border-transparent hover:border-[#e7e5e4] transition-all"
             >
-              <ArrowLeft className="w-6 h-6" />
+              <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-2xl font-black text-[#1a237e] uppercase tracking-tight">Percentage Calc</h1>
-              <p className="text-[#636e72] font-bold text-xs uppercase tracking-widest">Analyze Academic Results</p>
+              <h1 className="text-2xl font-black uppercase tracking-tighter">Academic Yield</h1>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#57534e] opacity-40">Grade Calculator</p>
             </div>
           </div>
           <button 
             onClick={resetPercentage}
-            className="p-2 text-[#636e72] hover:text-red-500 rounded-lg"
-            title="Reset"
+            className="w-12 h-12 flex items-center justify-center text-[#57534e] hover:text-[#943a1a] transition-colors"
           >
-            <RotateCcw className="w-5 h-5" />
+            <RotateCcw className="w-6 h-6" />
           </button>
         </header>
 
-        <div className="bg-white p-6 rounded-3xl border border-[#dee2e6] shadow-lg space-y-6">
-          <div className="space-y-4">
-            {marks.map((m, idx) => (
-              <div key={m.id} className="grid grid-cols-12 gap-4 items-center">
-                <div className="col-span-1 text-[10px] font-black text-[#636e72]">{idx + 1}</div>
-                <div className="col-span-6 relative">
-                   <input
-                    type="number"
-                    placeholder="Obtained Marks"
-                    value={m.obtained}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => updateMark(m.id, 'obtained', e.target.value)}
-                    className="w-full bg-[#f8f9fa] border border-[#dee2e6] rounded-xl px-4 py-2.5 text-sm font-bold text-[#1a237e] outline-none focus:border-[#1a237e] transition-all"
-                  />
+        <div className="bg-white rounded-[4rem] border border-[#e7e5e4] p-10 md:p-16 shadow-inner relative overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+            <div className="space-y-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
+              {marks.map((m, idx) => (
+                <div key={m.id} className="flex items-center gap-4 group">
+                  <span className="text-[9px] font-black text-[#57534e] opacity-20 w-4 tracking-tighter">{idx + 1}</span>
+                  <div className="flex-1 grid grid-cols-7 gap-2 bg-[#f7f5f2] rounded-2xl p-2 border border-transparent group-hover:border-[#943a1a]/20 transition-all">
+                    <input
+                      type="number"
+                      placeholder="Score"
+                      className="col-span-3 bg-white rounded-xl px-4 py-3 text-sm font-bold outline-none"
+                      value={m.obtained}
+                      onChange={(e) => updateMark(m.id, 'obtained', e.target.value)}
+                    />
+                    <div className="col-span-1 flex items-center justify-center opacity-20">/</div>
+                    <input
+                      type="number"
+                      placeholder="Total"
+                      className="col-span-3 bg-white rounded-xl px-4 py-3 text-sm font-bold outline-none"
+                      value={m.max}
+                      onChange={(e) => updateMark(m.id, 'max', e.target.value)}
+                    />
+                  </div>
                 </div>
-                <div className="col-span-1 text-center font-bold text-[#636e72]">/</div>
-                <div className="col-span-4">
-                  <input
-                    type="number"
-                    placeholder="Max"
-                    value={m.max}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => updateMark(m.id, 'max', e.target.value)}
-                    className="w-full bg-[#f8f9fa] border border-[#dee2e6] rounded-xl px-4 py-2.5 text-sm font-bold text-[#1a237e] outline-none focus:border-[#1a237e] transition-all"
-                  />
-                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col justify-center items-center gap-10">
+              <div className="text-center">
+                 <div className="w-32 h-32 rounded-full border-4 border-[#943a1a]/5 flex items-center justify-center mb-6 mx-auto relative group">
+                    <Percent className="w-10 h-10 text-[#943a1a] opacity-20 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 border-4 border-[#943a1a] border-t-transparent rounded-full animate-spin-slow opacity-10" />
+                 </div>
+                 <h2 className="text-6xl font-black uppercase tracking-tighter text-[#1c1917] mb-2">
+                    {resultPercentage !== null ? `${resultPercentage.toFixed(1)}%` : '--.—%'}
+                 </h2>
+                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#943a1a]">Calculated Efficiency</p>
               </div>
-            ))}
-          </div>
 
-          <div className="pt-4 border-t border-[#dee2e6] flex flex-col gap-6">
-            <button 
-              onClick={calculatePercentage}
-              className="w-full bg-[#1a237e] text-white py-4 rounded-xl font-black uppercase text-xs tracking-[0.2em] shadow-lg shadow-[#1a237e]/20 hover:opacity-90 transition-all flex items-center justify-center gap-2"
-            >
-              <Zap className="w-4 h-4 fill-white" />
-              Calculate Result
-            </button>
-
-            {resultPercentage !== null && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-[#f0f2ff] p-6 rounded-2xl flex flex-col items-center text-center gap-2 border border-[#1a237e]/10"
+              <button 
+                onClick={calculatePercentage}
+                className="w-full bg-[#943a1a] text-white py-6 rounded-3xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-[#943a1a]/30 hover:bg-[#c2410c] transition-all"
               >
-                <p className="text-[#636e72] text-[10px] uppercase font-black tracking-widest leading-none">Final Percentage</p>
-                <h4 className="text-4xl font-black text-[#1a237e]">{resultPercentage.toFixed(2)}%</h4>
-                <div className="mt-2 flex gap-1">
-                   {[...Array(5)].map((_, i) => (
-                     <div key={i} className={`h-1.5 w-8 rounded-full ${i < Math.floor(resultPercentage / 20) ? 'bg-[#00b8d4]' : 'bg-[#1a237e]/10'}`}></div>
-                   ))}
-                </div>
-              </motion.div>
-            )}
+                Execute Analysis
+              </button>
+            </div>
           </div>
+          
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[#f59e0b]/5 rounded-full blur-[80px]" />
         </div>
       </div>
     );
   }
 
-  // Standard Scientific Calculator
-  const scientificButtons = [
-    { label: '(', val: '(' },
-    { label: ')', val: ')' },
-    { label: '√', val: '√(' },
-    { label: 'cosec', val: 'cosec(' },
-    { label: 'sin', val: 'sin(' },
-    { label: 'cos', val: 'cos(' },
-    { label: 'tan', val: 'tan(' },
-    { label: 'log', val: 'log(' },
-    { label: '^', val: '^' },
-    { label: 'π', val: 'π' },
-  ];
-
-  const mainButtons = [
-    { label: '7', val: '7', type: 'num' }, { label: '8', val: '8', type: 'num' }, { label: '9', val: '9', type: 'num' }, { label: '÷', val: '/', type: 'op' },
-    { label: '4', val: '4', type: 'num' }, { label: '5', val: '5', type: 'num' }, { label: '6', val: '6', type: 'num' }, { label: '×', val: '*', type: 'op' },
-    { label: '1', val: '1', type: 'num' }, { label: '2', val: '2', type: 'num' }, { label: '3', val: '3', type: 'num' }, { label: '−', val: '-', type: 'op' },
-    { label: '0', val: '0', type: 'num' }, { label: '.', val: '.', type: 'num' }, { label: '=', val: '=', type: 'eq' }, { label: '+', val: '+', type: 'op' },
+  // Specialist Hardware Interface (Standard Calc)
+  const buttons = [
+    { label: '√', val: '√(', type: 'sci' }, { label: 'π', val: 'π', type: 'sci' }, { label: '^', val: '^', type: 'sci' }, { label: 'C', val: 'CLR', type: 'clr' },
+    { label: 'sin', val: 'sin(', type: 'sci' }, { label: 'cos', val: 'cos(', type: 'sci' }, { label: 'tan', val: 'tan(', type: 'sci' }, { label: '÷', val: '/', type: 'op' },
+    { label: '7', val: '7', type: 'num' }, { label: '8', val: '8', type: 'num' }, { label: '9', val: '9', type: 'num' }, { label: '×', val: '*', type: 'op' },
+    { label: '4', val: '4', type: 'num' }, { label: '5', val: '5', type: 'num' }, { label: '6', val: '6', type: 'num' }, { label: '−', val: '-', type: 'op' },
+    { label: '1', val: '1', type: 'num' }, { label: '2', val: '2', type: 'num' }, { label: '3', val: '3', type: 'num' }, { label: '+', val: '+', type: 'op' },
+    { label: '0', val: '0', type: 'num' }, { label: '.', val: '.', type: 'num' }, { label: 'del', val: 'DEL', type: 'del' }, { label: '=', val: '=', type: 'eq' },
   ];
 
   return (
-    <div className="max-w-md mx-auto space-y-6">
-      <header className="flex items-center gap-4">
-        <button 
-          onClick={() => { setMode('selection'); clearStandard(); }}
-          className="p-2 -ml-2 text-[#1a237e] hover:bg-[#f0f2ff] rounded-xl transition-colors"
-        >
-          <ArrowLeft className="w-6 h-6" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-black text-[#1a237e] uppercase tracking-tight">Scientīfic Calc</h1>
-          <p className="text-[#636e72] font-bold text-xs uppercase tracking-widest">Advanced Math Mode</p>
-        </div>
-      </header>
-
-      <div className="bg-white rounded-[2.5rem] p-6 shadow-2xl border border-[#dee2e6] space-y-6 overflow-hidden">
-        {/* Display */}
-        <div className="bg-[#f8f9fa] p-8 rounded-3xl border border-[#dee2e6] text-right flex flex-col justify-end min-h-[140px] shadow-inner">
-          <p className="text-[#636e72] text-xs font-bold mb-1 h-4">{equation}</p>
-          <div className="text-4xl font-black text-[#1a237e] overflow-hidden whitespace-nowrap overflow-ellipsis">
-            {display}
+    <div className="max-w-md mx-auto h-full flex flex-col justify-center">
+       <div className="bg-[#1c1917] p-8 md:p-12 rounded-[4rem] border-8 border-[#2d2a27] shadow-[0_40px_100px_rgba(0,0,0,0.4)] relative">
+          
+          {/* Status Bar */}
+          <div className="flex justify-between items-center mb-8 px-4 opacity-50">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full bg-[#f59e0b] shadow-[0_0_10px_#f59e0b]" />
+              <span className="text-[8px] font-mono uppercase tracking-widest text-[#fdfcfb]">Core_X1</span>
+            </div>
+            <span className="text-[8px] font-mono text-white opacity-40 uppercase tracking-widest">Scientific Mode v2.5</span>
           </div>
-        </div>
 
-        {/* Buttons Grid */}
-        <div className="space-y-4">
-          {/* Scientific Row */}
-          <div className="flex overflow-x-auto gap-2 pb-2 custom-scrollbar no-scrollbar">
-            {scientificButtons.map(btn => (
-              <button
+          {/* Liquid Crystal Display */}
+          <div className="bg-[#0c0a09] p-8 rounded-[2rem] border border-white/5 mb-10 text-right flex flex-col justify-end min-h-[160px] relative overflow-hidden shadow-inner font-mono">
+             <div className="absolute top-4 left-6 opacity-10 text-white text-[10px] uppercase tracking-widest">Analytical Buffer</div>
+             <p className="text-white/30 text-xs mb-4 uppercase tracking-tighter truncate">{equation}</p>
+             <div className="text-5xl font-light text-[#f59e0b] tracking-tighter overflow-hidden text-ellipsis whitespace-nowrap">
+                {display}
+             </div>
+             <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-black/20 pointer-events-none" />
+             <div className="absolute inset-x-0 bottom-0 h-px bg-white/5" />
+          </div>
+
+          {/* Tactical Inputs */}
+          <div className="grid grid-cols-4 gap-4">
+            {buttons.map((btn) => (
+              <motion.button
                 key={btn.label}
-                onClick={() => handleCalcPress(btn.val)}
-                className="shrink-0 bg-[#f0f2ff] px-4 py-2 rounded-xl text-[10px] font-black uppercase text-[#1a237e] border border-[#1a237e]/5 hover:bg-[#1a237e] hover:text-white transition-all"
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  if (btn.type === 'eq') calculateStandard();
+                  else if (btn.val === 'CLR') clearStandard();
+                  else if (btn.val === 'DEL') deleteLast();
+                  else handleCalcPress(btn.val);
+                }}
+                className={`h-16 rounded-[1.25rem] flex items-center justify-center font-bold text-xs uppercase transition-all ${
+                  btn.type === 'num' ? 'bg-[#292524] text-white hover:bg-[#44403c] border border-white/5' :
+                  btn.type === 'sci' ? 'bg-[#1c1917] text-[#f59e0b]/60 hover:text-[#f59e0b] border border-white/5' :
+                  btn.type === 'op' ? 'bg-[#943a1a] text-white hover:bg-[#c2410c] shadow-lg shadow-[#943a1a]/20' :
+                  btn.type === 'clr' ? 'bg-red-950 text-red-400 border border-red-500/10' :
+                  btn.type === 'eq' ? 'bg-[#f59e0b] text-[#1c1917] shadow-[0_0_20px_rgba(245,158,11,0.3)]' :
+                  'bg-[#292524] text-white'
+                }`}
               >
                 {btn.label}
-              </button>
+              </motion.button>
             ))}
           </div>
 
-          <div className="grid grid-cols-4 gap-3">
-             <button onClick={clearStandard} className="col-span-2 bg-[#fee2e2] text-red-600 p-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-sm">Clear</button>
-             <button onClick={deleteLast} className="bg-[#f8f9fa] p-5 rounded-2xl flex items-center justify-center text-[#636e72] border border-[#dee2e6] hover:bg-[#1a1a1a] hover:text-white transition-all shadow-sm"><Delete className="w-5 h-5" /></button>
-             <button onClick={() => handleCalcPress('(')} className="bg-[#f8f9fa] p-5 rounded-2xl font-black text-[#1a237e] border border-[#dee2e6] hover:bg-[#1a1a1a] hover:text-white transition-all shadow-sm">(</button>
-
-             {mainButtons.map((btn) => (
-                <button
-                  key={btn.label}
-                  onClick={() => btn.type === 'eq' ? calculateStandard() : handleCalcPress(btn.val)}
-                  className={`p-5 rounded-2xl font-black text-lg transition-all shadow-sm ${
-                    btn.type === 'num' ? 'bg-white text-[#1a1a1a] border border-[#dee2e6] hover:border-[#1a237e]' :
-                    btn.type === 'op' ? 'bg-[#f0f2ff] text-[#1a237e] border border-[#1a237e]/10 hover:bg-[#1a237e] hover:text-white' :
-                    'bg-[#00b8d4] text-white shadow-lg shadow-[#00b8d4]/30 hover:opacity-90'
-                  }`}
-                >
-                  {btn.label}
-                </button>
-             ))}
+          <button 
+            onClick={() => setMode('selection')}
+            className="mt-10 w-full py-4 rounded-2xl bg-white/5 hover:bg-white/10 text-white/30 hover:text-white transition-all text-[8px] font-black uppercase tracking-[0.4em] flex items-center justify-center gap-3"
+          >
+             <ArrowLeft className="w-3 h-3" /> System Back
+          </button>
+          
+          {/* Aesthetic Hardware Details */}
+          <div className="absolute bottom-6 right-12 opacity-5">
+             <div className="grid grid-cols-3 gap-1">
+                {[...Array(6)].map((_, i) => <div key={i} className="w-1 h-1 bg-white rounded-full"></div>)}
+             </div>
           </div>
-        </div>
-      </div>
+       </div>
     </div>
   );
 }

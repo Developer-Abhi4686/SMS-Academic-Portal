@@ -3,7 +3,6 @@ import { motion } from 'motion/react';
 import { Sparkles, Send, Copy, RotateCcw, ArrowLeft } from 'lucide-react';
 import { getGeminiResponse, prompts } from '../../lib/geminiService';
 import MarkdownRenderer from '../../components/MarkdownRenderer';
-import SaveButton from '../../components/SaveButton';
 import { useSessionState } from '../../lib/hooks';
 
 export default function QuizGenerator({ userClass, onBack }: { userClass: string | null, onBack?: () => void }) {
@@ -17,7 +16,7 @@ export default function QuizGenerator({ userClass, onBack }: { userClass: string
     if (!subject || !chapter) return;
     setLoading(true);
     const prompt = `Subject: ${subject}\nChapter: ${chapter}\nTARGET DIFFICULTY: ${difficulty.toUpperCase()}\n\nTASK: Generate exactly 10 questions that are strictly categorized as ${difficulty.toUpperCase()} level. Do not include any other difficulty levels.`;
-    const res = await getGeminiResponse(prompt, prompts.quizGenerator, userClass, "gemini-2.5-flash-lite");
+    const res = await getGeminiResponse(prompt, prompts.quizGenerator, userClass, "gemini-2.5-flash");
     setResponse(res);
     setLoading(false);
   };
@@ -28,44 +27,44 @@ export default function QuizGenerator({ userClass, onBack }: { userClass: string
         {onBack && (
           <button 
             onClick={onBack}
-            className="p-2 -ml-2 text-[#1a237e] hover:bg-[#f0f2ff] rounded-xl transition-colors"
+            className="p-2 -ml-2 text-[#1a237e] hover:bg-blue-50 rounded-xl transition-colors"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
         )}
-        <div className="w-12 h-12 rounded-xl bg-[#f0f2ff] flex items-center justify-center border border-[#e9ecef] shadow-sm">
+        <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center border border-[#e9ecef] shadow-sm">
           <Sparkles className="w-6 h-6 text-[#1a237e]" />
         </div>
         <div>
           <h1 className="text-xl font-black text-[#1a237e] uppercase tracking-tight">Quiz Generator</h1>
-          <p className="text-[#636e72] text-[11px] font-bold uppercase tracking-widest">Create professional assessments in seconds.</p>
+          <p className="text-[#57534e] text-[11px] font-bold uppercase tracking-widest">Create professional assessments in seconds.</p>
         </div>
       </div>
 
       <div className="bg-white p-6 rounded-xl border border-[#e9ecef] shadow-sm space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-[10px] font-black uppercase tracking-widest text-[#636e72] pl-1">Subject</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-[#57534e] pl-1">Subject</label>
             <input 
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. Science, Mathematics" 
-              className="w-full bg-[#f8f9fa] border border-[#e9ecef] rounded-lg p-3 text-[#1a1a1a] focus:border-[#1a237e] outline-none font-bold transition-all placeholder:font-normal"
+              className="w-full bg-[#fdfcfb] border border-[#e9ecef] rounded-lg p-3 text-[#1c1917] focus:border-[#1a237e] outline-none font-bold transition-all placeholder:font-normal"
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-black uppercase tracking-widest text-[#636e72] pl-1">Chapter Name/Number</label>
+            <label className="text-[10px] font-black uppercase tracking-widest text-[#57534e] pl-1">Chapter Name/Number</label>
             <input 
               value={chapter}
               onChange={(e) => setChapter(e.target.value)}
               placeholder="e.g. Force and Motion" 
-              className="w-full bg-[#f8f9fa] border border-[#e9ecef] rounded-lg p-3 text-[#1a1a1a] focus:border-[#1a237e] outline-none font-bold transition-all placeholder:font-normal"
+              className="w-full bg-[#fdfcfb] border border-[#e9ecef] rounded-lg p-3 text-[#1c1917] focus:border-[#1a237e] outline-none font-bold transition-all placeholder:font-normal"
             />
           </div>
         </div>
         
         <div className="space-y-1">
-          <label className="text-[10px] font-black uppercase tracking-widest text-[#636e72] pl-1">Difficulty Level</label>
+          <label className="text-[10px] font-black uppercase tracking-widest text-[#57534e] pl-1">Difficulty Level</label>
           <div className="flex gap-2">
             {['Basic', 'Moderate', 'Highly Difficult'].map((level) => (
               <button
@@ -74,7 +73,7 @@ export default function QuizGenerator({ userClass, onBack }: { userClass: string
                 className={`flex-1 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
                   difficulty === level.toLowerCase() 
                     ? 'bg-[#1a237e] text-white shadow-md' 
-                    : 'bg-[#f8f9fa] border border-[#e9ecef] text-[#636e72] hover:bg-[#f1f3f5]'
+                    : 'bg-blue-50 border border-blue-100 text-[#57534e] hover:bg-blue-100'
                 }`}
               >
                 {level}
@@ -86,13 +85,13 @@ export default function QuizGenerator({ userClass, onBack }: { userClass: string
         <button 
           onClick={handleGenerate}
           disabled={loading || !subject || !chapter}
-          className="w-full bg-gradient-to-r from-[#1a237e] to-[#3949ab] hover:opacity-90 py-4 rounded-lg flex items-center justify-center gap-2 font-black text-xs uppercase tracking-[0.2em] text-white transition-all disabled:opacity-50 shadow-md"
+          className="w-full bg-[#1a237e] hover:bg-[#283593] py-4 rounded-lg flex items-center justify-center gap-2 font-black text-xs uppercase tracking-[0.2em] text-white transition-all disabled:opacity-50 shadow-md"
         >
           {loading ? (
-            <RotateCcw className="w-4 h-4 animate-spin text-[#00b8d4]" />
+            <RotateCcw className="w-4 h-4 animate-spin text-[#f59e0b]" />
           ) : (
             <>
-              <Send className="w-4 h-4 text-[#00b8d4]" />
+              <Send className="w-4 h-4 text-[#f59e0b]" />
               PROCESS REQUEST
             </>
           )}
@@ -107,14 +106,9 @@ export default function QuizGenerator({ userClass, onBack }: { userClass: string
         >
           <div className="absolute top-0 left-0 w-1 h-full bg-[#1a237e]" />
           <div className="absolute top-4 right-4 flex gap-2">
-            <SaveButton 
-              type="quiz" 
-              title={`${subject} Quiz: ${chapter}`} 
-              content={response} 
-            />
             <button 
               onClick={() => navigator.clipboard.writeText(response)}
-              className="p-2 bg-[#f8f9fa] rounded-lg border border-[#e9ecef] text-[#636e72] hover:text-[#1a237e] transition-all shadow-sm"
+              className="p-2 bg-[#fdfcfb] rounded-lg border border-[#e9ecef] text-[#57534e] hover:text-[#1a237e] transition-all shadow-sm"
             >
               <Copy className="w-4 h-4" />
             </button>

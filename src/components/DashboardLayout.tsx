@@ -15,12 +15,11 @@ import {
   MessageSquare,
   Menu,
   X,
-  Sun,
-  Moon,
   Calculator as CalculatorIcon,
-  BookMarked
+  ShieldCheck,
+  Search
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { UserRole, UserProfile } from '../types';
 import { UserCircle } from 'lucide-react';
 import AIChatOverlay from './AIChatOverlay';
@@ -51,14 +50,15 @@ export default function DashboardLayout({
   
   const teacherMenuItems = [
     { id: 'home', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'attendance', label: 'Daily Attendance', icon: ClipboardList },
-    { id: 'quiz', label: 'Quiz Generator', icon: ClipboardList },
-    { id: 'selector', label: 'Student Selector', icon: Users },
-    { id: 'resources', label: 'Resources', icon: BookOpen },
-    { id: 'lessons', label: 'Plan Lessons', icon: MonitorPlay },
-    { id: 'test-paper', label: 'Test Paper Generator', icon: FileText },
-    { id: 'sample-paper', label: 'Sample Paper Generator', icon: FileSearch },
-    { id: 'calculator', label: 'Calculator', icon: CalculatorIcon },
+    { id: 'attendance', label: 'Attendance', icon: ClipboardList },
+    { id: 'quiz', label: 'Quiz Engine', icon: BrainCircuit },
+    { id: 'selector', label: 'Student Randomizer', icon: Users },
+    { id: 'resources', label: 'Digital Library', icon: Library },
+    { id: 'lessons', label: 'Lesson Planner', icon: FileSearch },
+    { id: 'test-paper', label: 'Test Papers', icon: FileText },
+    { id: 'sample-paper', label: 'Sample Papers', icon: FileText },
+    { id: 'calculator', label: 'Academic Calc', icon: CalculatorIcon },
+    { id: 'submissions', label: 'Submissions', icon: FileText },
   ];
 
   const studentMenuItems = [
@@ -66,130 +66,157 @@ export default function DashboardLayout({
     { id: 'doubt', label: 'Doubt Solver', icon: Lightbulb },
     { id: 'calculator', label: 'Calculator', icon: CalculatorIcon },
     { id: 'assignment', label: 'Assignment Assistant', icon: MessageSquare },
-    { id: 'resources', label: 'Resources', icon: BookOpen },
-    { id: 'analyze', label: 'Analyze', icon: FileSearch },
+    { id: 'resources', label: 'Digital Library', icon: BookOpen },
+    { id: 'analyze', label: 'Progress Analyze', icon: FileSearch },
+    { id: 'student-submissions', label: 'Submission', icon: ShieldCheck },
   ];
 
   const menuItems = role === 'teacher' ? teacherMenuItems : studentMenuItems;
 
   return (
-    <div className="flex h-screen bg-[#f8f9fa] text-[#2d3436] overflow-hidden font-['Segoe_UI',Roboto,Helvetica,Arial,sans-serif]">
+    <div className="flex h-screen bg-[#f8f9fa] text-[#1c1917] overflow-hidden p-0 md:p-3 selection:bg-[#1a237e] selection:text-white">
       {/* Mobile Sidebar Overlay */}
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-30 md:hidden" 
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-[#1c1917]/40 backdrop-blur-sm z-[60] md:hidden" 
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
-      {/* Sidebar */}
+      {/* Modern Sidebar */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-[#e9ecef] flex flex-col transition-transform duration-300 md:relative md:translate-x-0
-        ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:shadow-sm'}
+        fixed inset-y-0 left-0 z-[70] w-72 bg-white md:bg-[#f8f9fa] flex flex-col transition-all duration-500 md:relative md:translate-x-0
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        md:w-64 lg:w-72 md:p-4
       `}>
-        <div className="p-6 border-b border-[#e9ecef]">
-          <div className="flex items-center justify-between">
+        <div className="flex flex-col h-full bg-white md:rounded-[2.5rem] border border-[#e7e5e4] shadow-sm overflow-hidden">
+          {/* Logo Section */}
+          <div className="p-8 pb-4">
             <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${role === 'teacher' ? 'bg-[#3949ab] text-white' : 'bg-[#1a237e] text-white'} font-bold shadow-sm`}>
-                {role === 'teacher' ? "T" : "S"}
+              <div className="w-10 h-10 bg-[#1a237e] rounded-xl flex items-center justify-center text-white shadow-lg shrink-0">
+                <ShieldCheck className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="font-extrabold text-sm uppercase tracking-wider text-[#1a237e]">
-                  {role === 'teacher' ? "Teacher's Corner" : "Student's Corner"}
-                </h1>
-                <p className="text-[9px] uppercase tracking-widest text-[#1a237e] font-bold">St Michael's School</p>
+                <h1 className="font-editorial text-lg text-[#1a237e]">Student</h1>
+                <p className="text-[8px] font-black uppercase tracking-[0.3em] opacity-40">St. Michael's</p>
               </div>
             </div>
+          </div>
+
+          {/* Navigation */}
+          <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1 custom-scrollbar">
+            <p className="px-4 text-[9px] font-black uppercase tracking-[0.2em] text-[#57534e] mb-2 opacity-50">Main Menu</p>
+            {menuItems.map((item, index) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  onNavigate(item.id);
+                  setIsSidebarOpen(false);
+                }}
+                className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all duration-300 group relative text-xs font-bold uppercase tracking-widest ${
+                  currentView === item.id 
+                    ? "bg-[#1a237e] text-white shadow-lg shadow-[#1a237e]/20" 
+                    : "text-[#57534e] hover:bg-blue-50 hover:text-[#1a237e]"
+                }`}
+              >
+                <item.icon className={`w-4 h-4 ${currentView === item.id ? 'text-white' : 'text-[#57534e] opacity-40 group-hover:opacity-100'}`} />
+                <span>{item.label}</span>
+              </button>
+            ))}
+          </nav>
+
+          {/* User Profile Summary */}
+          <div className="p-6 mt-auto">
+            <div className="bg-[#f8f9fa] rounded-[2rem] p-4 border border-[#e7e5e4] mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-[#e7e5e4] shadow-sm">
+                  <UserCircle className="w-6 h-6 text-[#1a237e]" />
+                </div>
+                <div className="overflow-hidden">
+                  <p className="text-[10px] font-black uppercase truncate text-[#1c1917]">
+                    {userProfile?.fullName || 'User'}
+                  </p>
+                  <p className="text-[8px] font-bold uppercase tracking-widest text-[#1a237e]">
+                    Class {userClass}-{userSection || 'A'}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-center mb-4 text-[#57534e] opacity-40">Credit: Abhi Sharma(9-D)</p>
             <button 
-              onClick={() => setIsSidebarOpen(false)}
-              className="p-2 md:hidden text-[#636e72] hover:bg-[#f8f9fa] rounded-lg"
+              onClick={onLogout}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-red-50 text-red-600 border border-red-100 font-black text-[9px] uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-sm"
             >
-              <X className="w-5 h-5" />
+              <LogOut className="w-3 h-3" />
+              Sign Out
             </button>
           </div>
-        </div>
-
-        <nav className="flex-1 overflow-y-auto p-3 space-y-1 py-4 custom-scrollbar">
-          {menuItems.map((item, index) => (
-            <motion.button
-              key={item.id}
-              initial={{ x: -20, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: index * 0.05 }}
-              onClick={() => {
-                onNavigate(item.id);
-                setIsSidebarOpen(false);
-              }}
-              className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200 group relative text-sm font-semibold ${
-                currentView === item.id 
-                  ? "bg-gradient-to-r from-[#1a237e] to-[#3949ab] text-white shadow-md" 
-                  : "text-[#636e72] hover:bg-[#f0f2ff] hover:text-[#1a237e]"
-              }`}
-            >
-              <item.icon className={`w-4 h-4 transition-colors ${
-                currentView === item.id 
-                  ? 'text-white'
-                  : 'text-[#636e72] group-hover:text-[#1a237e]'
-              }`} />
-              <span>{item.label}</span>
-              {currentView === item.id && (
-                <motion.div 
-                  layoutId="active-indicator"
-                  className="absolute right-0 w-1 h-4 bg-[#00b8d4] rounded-l-full"
-                />
-              )}
-            </motion.button>
-          ))}
-        </nav>
-
-        <div className="p-4 border-t border-[#e9ecef]">
-          <motion.button 
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={onLogout}
-            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-red-50 text-red-600 border border-red-100 font-bold text-xs uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all duration-300 shadow-sm"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Logout Portal</span>
-          </motion.button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto relative flex flex-col">
-        <header className="h-[70px] bg-white border-b border-[#e9ecef] px-4 md:px-8 flex items-center justify-between shadow-sm z-10 shrink-0">
-          <div className="flex items-center gap-4">
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col min-w-0 bg-[#f8f9fa] md:p-4">
+        {/* Modern Command Header */}
+        <header className="h-[80px] bg-white md:rounded-[2rem] border border-[#e7e5e4] px-6 md:px-10 flex items-center justify-between shadow-sm z-10 mb-4 shrink-0">
+          <div className="flex items-center gap-6">
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="p-2 -ml-2 text-[#1a237e] md:hidden hover:bg-[#f0f2ff] rounded-lg transition-colors"
+              className="p-2 -ml-2 text-[#1a237e] md:hidden"
             >
               <Menu className="w-6 h-6" />
             </button>
-            <h2 className="text-sm md:text-lg font-bold text-[#1a237e] flex items-center gap-1.5 sm:gap-2">
-              <span className="truncate max-w-[120px] sm:max-w-none">{menuItems.find(i => i.id === currentView)?.label}</span>
-              <span className="text-[9px] md:text-xs font-normal text-[#636e72] px-1.5 sm:px-2 py-0.5 bg-[#f1f3f5] rounded-full border border-[#dee2e6] whitespace-nowrap">SMS Academīc</span>
-            </h2>
+            <div className="hidden lg:flex items-center gap-3 text-[#57534e] opacity-40">
+              <Search className="w-4 h-4" />
+              <span className="text-[9px] font-black uppercase tracking-[0.2em]">Academic Toolsearch</span>
+            </div>
+            <div className="h-4 w-px bg-[#e7e5e4] hidden lg:block" />
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-black uppercase tracking-tighter text-[#1a237e]">
+                {menuItems.find(i => i.id === currentView)?.label}
+              </h2>
+            </div>
           </div>
-          <div className="flex items-center gap-2 md:gap-4">
-             <div className="bg-[#f1f3f5] px-3 md:px-4 py-1.5 rounded-full border border-[#dee2e6] text-[10px] md:text-xs font-bold text-[#1a237e] shadow-sm flex items-center gap-2 md:gap-3">
-                <span className="opacity-60">{userClass}-{userSection}</span>
-                <span className="w-px h-3 bg-[#dee2e6] hidden sm:block"></span>
-                <span className="hidden sm:inline">👤 Admin Abhi</span>
-             </div>
+
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex flex-col text-right">
+              <span className="text-[8px] font-black uppercase tracking-[0.2em] text-[#57534e]">St. Michaels Portal</span>
+              <span className="text-[10px] font-bold italic font-editorial text-[#1a237e]">"Light and Truth"</span>
+            </div>
+            <div className="w-10 h-10 bg-[#f8f9fa] rounded-xl flex items-center justify-center border border-[#e7e5e4]">
+              <MessageSquare className="w-4 h-4 text-[#1a237e]" />
+            </div>
           </div>
         </header>
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar bg-[#f8f9fa]">
-          {children}
+
+        {/* Dynamic Content Surface */}
+        <div className="flex-1 bg-white md:rounded-[2.5rem] border border-[#e7e5e4] overflow-hidden relative shadow-inner">
+          <div className="absolute inset-0 overflow-y-auto p-6 md:p-12 custom-scrollbar">
+            {children}
+            
+            {/* Contextual Footer Info */}
+            <div className="mt-24 pt-8 border-t border-[#f8f9fa] flex flex-col md:flex-row justify-between items-center gap-4">
+              <p className="text-[9px] font-black uppercase tracking-[0.15em] text-[#57534e] opacity-30">
+                SMS Student Hub &bull; Credit: Abhi Sharma(9-D)
+              </p>
+              <p className="text-[9px] font-black uppercase tracking-[0.15em] text-[#57534e] opacity-30">
+                Designed for St. Michael's School Bhind
+              </p>
+            </div>
+          </div>
         </div>
-        
-        {/* Persistent Credit Footer */}
-        <footer className="bg-white border-t border-[#e9ecef] py-4 px-4 md:px-8 text-center shrink-0 z-10">
-          <p className="text-[#636e72] text-[9px] md:text-xs font-bold uppercase tracking-[0.15em] md:tracking-widest leading-relaxed">
-            SMS Academīc Portal designed for St. Michael's By Abhi Sharma(9-d)
-          </p>
-        </footer>
       </main>
-      {currentView === 'home' && <AIChatOverlay role={role} />}
+
+      {/* Floating AI Assistant Integration */}
+      {currentView === 'home' && (
+        <div className="fixed bottom-10 right-10 z-[100]">
+           <AIChatOverlay role={role} />
+        </div>
+      )}
     </div>
   );
 }

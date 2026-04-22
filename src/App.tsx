@@ -36,12 +36,14 @@ import LessonPlanner from './views/teacher/LessonPlanner';
 import AttendanceManager from './views/teacher/AttendanceManager';
 import TestPaperGenerator from './views/teacher/TestPaperGenerator';
 import SamplePaperGenerator from './views/teacher/SamplePaperGenerator';
+import Submissions from './views/teacher/Submissions';
 import Calculator from './views/shared/Calculator';
 
 import StudentHome from './views/student/StudentHome';
 import DoubtSolver from './views/student/DoubtSolver';
 import AssignmentAssistant from './views/student/AssignmentAssistant';
 import Analyze from './views/student/Analyze';
+import StudentSubmissions from './views/student/StudentSubmissions';
 import ProfileView from './views/shared/ProfileView';
 import { clearSessionStates } from './lib/hooks';
 
@@ -228,7 +230,7 @@ function AppContent() {
             
             <div className="flex flex-col items-center gap-1">
               <h1 className="text-xl font-black text-[#1a237e] uppercase tracking-[0.2em] leading-none">
-                SMS Academīc
+                SMS Student
               </h1>
               <motion.div 
                 initial={{ width: 0 }}
@@ -236,8 +238,8 @@ function AppContent() {
                 transition={{ duration: 1.5, ease: "easeInOut" }}
                 className="h-[1px] bg-[#1a237e]/30 w-full"
               />
-              <p className="text-[8px] text-[#636e72] font-black uppercase tracking-[0.4em] pt-1">
-                Initializing Node
+              <p className="text-[8px] text-[#57534e] font-black uppercase tracking-[0.4em] pt-1">
+                Starting Student Node
               </p>
             </div>
           </motion.div>
@@ -343,7 +345,7 @@ function AppContent() {
                 className="w-16 h-16 border-t-2 border-[#1a237e] rounded-full absolute top-0 left-0"
               ></motion.div>
             </div>
-            <p className="text-[#636e72] text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">Syncing Academy Node</p>
+            <p className="text-[#57534e] text-[10px] font-black uppercase tracking-[0.4em] animate-pulse">Syncing Student Node</p>
           </motion.div>
         ) : (
           <motion.div
@@ -388,11 +390,13 @@ function AppContent() {
               <Route path="/lessons" element={<LessonPlanner userClass={userClass} onBack={handleBack} />} />
               <Route path="/test-paper" element={<TestPaperGenerator userClass={userClass} onBack={handleBack} />} />
               <Route path="/sample-paper" element={<SamplePaperGenerator userClass={userClass} onBack={handleBack} />} />
+              <Route path="/submissions" element={<Submissions userClass={userClass} userSection={userSection} onBack={handleBack} />} />
               
               {/* Student Routes */}
               <Route path="/doubt" element={<DoubtSolver userClass={userClass} onBack={handleBack} />} />
               <Route path="/assignment" element={<AssignmentAssistant userClass={userClass} onBack={handleBack} />} />
               <Route path="/analyze" element={<Analyze userClass={userClass} onBack={handleBack} />} />
+              <Route path="/student-submissions" element={<StudentSubmissions userClass={userClass} userSection={userSection} onBack={handleBack} />} />
               
               {/* Shared */}
               <Route path="/resources" element={<Resources role={role || 'student'} userClass={userClass} onBack={handleBack} />} />

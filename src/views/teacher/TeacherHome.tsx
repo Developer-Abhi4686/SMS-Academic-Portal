@@ -7,7 +7,13 @@ import {
   FileText, 
   FileSearch, 
   BookOpen,
-  Calculator
+  Calculator,
+  BrainCircuit,
+  ArrowUpRight,
+  Sparkles,
+  ArrowRight,
+  ChevronRight,
+  FileDown
 } from 'lucide-react';
 
 interface TeacherHomeProps {
@@ -15,49 +21,193 @@ interface TeacherHomeProps {
 }
 
 export default function TeacherHome({ onNavigate }: TeacherHomeProps) {
-  const tools = [
-    { id: 'attendance', label: 'Daily Attendance', icon: ClipboardList, desc: 'Record and track student attendance.', color: 'from-emerald-600 to-teal-600' },
-    { id: 'quiz', label: 'Quiz Generator', icon: ClipboardList, desc: 'Generate multi-difficulty quizzes instantly.', color: 'from-blue-600 to-cyan-600' },
-    { id: 'selector', label: 'Student Selector', icon: Users, desc: 'Randomly pick students for participation.', color: 'from-purple-600 to-pink-600' },
-    { id: 'lessons', label: 'Plan Lessons', icon: MonitorPlay, desc: 'Design structured, engaging lesson plans.', color: 'from-orange-600 to-yellow-600' },
-    { id: 'test-paper', label: 'Test Papers', icon: FileText, desc: 'Create full-length exam papers.', color: 'from-green-600 to-emerald-600' },
-    { id: 'sample-paper', label: 'Sample Papers', icon: FileSearch, desc: 'Generate practice papers for students.', color: 'from-indigo-600 to-purple-600' },
-    { id: 'resources', label: 'Resources Bank', icon: BookOpen, desc: 'Access NCERT and reference materials.', color: 'from-teal-600 to-blue-600' },
-    { id: 'calculator', label: 'Calculator', icon: Calculator, desc: 'Standard & percentage calculation tools.', color: 'from-gray-600 to-slate-600' },
-  ];
-
   return (
-    <div className="space-y-6 md:space-y-8">
-      <header>
-        <h1 className="text-xl md:text-2xl font-black text-[#1a237e] uppercase tracking-tight mb-1">Quick Access Toolkit</h1>
-        <p className="text-[#4b5563] text-xs md:text-sm font-bold">Manage your academic workflows and AI-powered generators.</p>
+    <div className="space-y-12">
+      {/* Intro Section */}
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-[#1a237e]" />
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#1a237e]">Teacher Dashboard</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">
+            Student <span className="font-editorial text-[#1a237e]">Service</span>
+          </h1>
+          <p className="max-w-md text-[#57534e] text-sm font-medium">
+            Welcome back to the Command Center. Manage your curriculum, students, and AI generators with precision.
+          </p>
+        </div>
+        
+        <div className="hidden md:block text-right">
+          <p className="text-[10px] font-black uppercase tracking-widest text-[#57534e] opacity-40">Active Session</p>
+          <p className="font-editorial italic text-xl text-[#1a237e]">2026—2027 Year</p>
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {tools.map((tool, index) => (
-          <motion.button
-            key={tool.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            whileHover={{ y: -3, backgroundColor: '#f0f7ff', borderColor: '#3949ab' }}
-            onClick={() => onNavigate(tool.id)}
-            className="group bg-white p-5 md:p-6 rounded-xl text-center border border-[#e9ecef] shadow-sm transition-all relative overflow-hidden flex flex-col items-center gap-3"
-          >
-            <div className={`w-12 h-12 rounded-xl bg-[#f0f2ff] flex items-center justify-center border border-[#e9ecef] group-hover:bg-[#1a237e] group-hover:text-white transition-colors`}>
-              <tool.icon className="w-5 h-5 text-[#1a237e] group-hover:text-white" />
+      {/* Bento Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-6 lg:grid-cols-12 gap-4 auto-rows-[160px]">
+        {/* Attendance - Wide/Featured */}
+        <motion.button
+          whileHover={{ scale: 1.01 }}
+          onClick={() => onNavigate('attendance')}
+          className="md:col-span-3 lg:col-span-6 row-span-1 bg-[#1a237e] text-white p-8 rounded-[2.5rem] flex items-center justify-between group overflow-hidden relative shadow-xl shadow-[#1a237e]/20"
+        >
+          <div className="relative z-10 text-left">
+            <h2 className="text-2xl font-black uppercase tracking-tighter mb-1">Attendance Manager</h2>
+            <p className="text-[10px] uppercase tracking-widest font-bold opacity-80">Track daily student presence</p>
+          </div>
+          <div className="relative z-10 w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
+            <ClipboardList className="w-6 h-6" />
+          </div>
+          <div className="absolute top-[-20%] right-[-10%] w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700" />
+        </motion.button>
+
+        {/* Quiz Engine - Square */}
+        <motion.button
+          whileHover={{ scale: 0.98 }}
+          onClick={() => onNavigate('quiz')}
+          className="md:col-span-3 lg:col-span-3 row-span-1 bg-white border border-[#e7e5e4] p-6 rounded-[2.5rem] flex flex-col justify-between hover:border-[#1a237e] transition-all group"
+        >
+          <div className="flex justify-between items-start">
+            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-[#1a237e]">
+              <BrainCircuit className="w-5 h-5" />
             </div>
-            
-            <h2 className="text-sm font-black text-[#1a1a1a] uppercase tracking-tighter">{tool.label}</h2>
-            <p className="text-[#4b5563] text-[10px] leading-snug font-bold line-clamp-2">{tool.desc}</p>
-          </motion.button>
-        ))}
+            <ArrowUpRight className="w-4 h-4 text-[#57534e] opacity-20 group-hover:opacity-100 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
+          </div>
+          <div>
+            <h2 className="text-sm font-black uppercase tracking-widest">Quiz Engine</h2>
+            <p className="text-[9px] font-bold text-[#57534e] mt-1 opacity-60">AI Question Generator</p>
+          </div>
+        </motion.button>
+
+        {/* Student Randomizer - Square */}
+        <motion.button
+          whileHover={{ scale: 0.98 }}
+          onClick={() => onNavigate('selector')}
+          className="md:col-span-3 lg:col-span-3 row-span-1 bg-white border border-[#e7e5e4] p-6 rounded-[2.5rem] flex flex-col justify-between hover:border-[#1a237e] transition-all group"
+        >
+          <div className="flex justify-between items-start">
+            <div className="w-10 h-10 bg-[#f8f9fa] rounded-xl flex items-center justify-center text-[#1a237e]">
+              <Users className="w-5 h-5" />
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-[#57534e] opacity-20 group-hover:opacity-100 transition-all" />
+          </div>
+          <div>
+            <h2 className="text-sm font-black uppercase tracking-widest">Randomizer</h2>
+            <p className="text-[9px] font-bold text-[#57534e] mt-1 opacity-60">Pick lucky student</p>
+          </div>
+        </motion.button>
+
+        {/* Lesson Planner - Tall */}
+        <motion.button
+          whileHover={{ scale: 0.98 }}
+          onClick={() => onNavigate('lessons')}
+          className="md:col-span-3 lg:col-span-4 row-span-2 bg-[#f8f9fa] border border-[#e7e5e4] p-10 rounded-[3rem] flex flex-col justify-between hover:border-[#1a237e] transition-all group"
+        >
+          <div className="space-y-6">
+            <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center text-[#1a237e] shadow-sm border border-[#e7e5e4]">
+              <MonitorPlay className="w-8 h-8" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black uppercase tracking-tighter">Lesson <br />Architect</h2>
+              <p className="text-xs font-medium text-[#57534e] mt-4 leading-relaxed group-hover:text-[#1c1917]">
+                Design high-impact, engaging curriculum structures for any subject.
+              </p>
+            </div>
+          </div>
+          <div className="text-[10px] font-black uppercase tracking-widest text-[#1a237e] flex items-center gap-2">
+            Configure Structure <ArrowRight className="w-3 h-3" />
+          </div>
+        </motion.button>
+
+        {/* Paper Generators Section */}
+        <motion.button
+          whileHover={{ scale: 0.98 }}
+          onClick={() => onNavigate('test-paper')}
+          className="md:col-span-3 lg:col-span-4 row-span-1 border border-[#e7e5e4] p-6 rounded-[2.5rem] flex items-center gap-6 hover:bg-white hover:border-[#1a237e] transition-all"
+        >
+          <div className="w-12 h-12 bg-[#1a237e]/5 rounded-2xl flex items-center justify-center text-[#1a237e]">
+            <FileText className="w-6 h-6" />
+          </div>
+          <div className="text-left">
+            <h2 className="text-sm font-black uppercase tracking-widest">Test Papers</h2>
+            <p className="text-[9px] font-bold text-[#57534e] opacity-60">Generate Exam Sheets</p>
+          </div>
+        </motion.button>
+
+        <motion.button
+          whileHover={{ scale: 0.98 }}
+          onClick={() => onNavigate('sample-paper')}
+          className="md:col-span-3 lg:col-span-4 row-span-1 border border-[#e7e5e4] p-6 rounded-[2.5rem] flex items-center gap-6 hover:bg-white hover:border-[#1a237e] transition-all"
+        >
+          <div className="w-12 h-12 bg-amber-500/5 rounded-2xl flex items-center justify-center text-amber-600">
+            <FileSearch className="w-6 h-6" />
+          </div>
+          <div className="text-left">
+            <h2 className="text-sm font-black uppercase tracking-widest">Sample Papers</h2>
+            <p className="text-[9px] font-bold text-[#57534e] opacity-60">Practice Assignments</p>
+          </div>
+        </motion.button>
+
+        {/* Library & Calculator */}
+        <motion.button
+          whileHover={{ scale: 0.98 }}
+          onClick={() => onNavigate('resources')}
+          className="md:col-span-3 lg:col-span-4 row-span-1 bg-[#1c1917] text-white p-6 rounded-[2.5rem] flex items-center justify-between group overflow-hidden"
+        >
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div className="text-left">
+              <h2 className="text-sm font-black uppercase tracking-widest">Library</h2>
+              <p className="text-[8px] font-bold uppercase opacity-50">NCERT Hub</p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 opacity-40 group-hover:translate-x-2 transition-transform relative z-10" />
+          <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-2xl group-hover:scale-150 transition-transform" />
+        </motion.button>
+
+        <motion.button
+          whileHover={{ scale: 0.98 }}
+          onClick={() => onNavigate('calculator')}
+          className="md:col-span-3 lg:col-span-4 row-span-1 border border-[#e7e5e4] p-6 rounded-[2.5rem] flex items-center justify-between group transition-all hover:bg-[#f8f9fa] hover:border-[#1a237e]"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-[#f8f9fa] rounded-xl flex items-center justify-center text-[#1a237e]">
+              <Calculator className="w-5 h-5" />
+            </div>
+            <div className="text-left">
+              <h2 className="text-sm font-black uppercase tracking-widest">Student Calc</h2>
+              <p className="text-[8px] font-bold text-[#57534e] opacity-60 uppercase">Math Utility</p>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-[#57534e] group-hover:translate-x-1 transition-transform" />
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 0.98 }}
+          onClick={() => onNavigate('submissions')}
+          className="md:col-span-3 lg:col-span-4 row-span-1 border border-[#e7e5e4] p-6 rounded-[2.5rem] flex items-center justify-between group transition-all hover:bg-[#f8f9fa] hover:border-[#1a237e]"
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+              <FileDown className="w-5 h-5" />
+            </div>
+            <div className="text-left">
+              <h2 className="text-sm font-black uppercase tracking-widest">Submissions</h2>
+              <p className="text-[8px] font-bold text-[#57534e] opacity-60 uppercase">Student Docs</p>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-[#57534e] group-hover:translate-x-1 transition-transform" />
+        </motion.button>
       </div>
 
-      <div className="bg-[#e7f5ff] p-10 rounded-xl border border-[#a5d8ff] text-center shadow-inner">
-        <h3 className="text-[#1a237e] font-black text-xs uppercase tracking-widest mb-2">School Wisdom</h3>
-        <p className="text-[#1a237e] italic font-serif text-lg">"Light and Truth" – St Michael's School, Bhind</p>
-      </div>
+      {/* Editorial Footer */}
+      <footer className="text-center py-12">
+        <div className="h-px w-[100px] bg-[#e7e5e4] mx-auto mb-6" />
+        <p className="font-editorial italic text-2xl text-[#1a237e]">"Light and Truth"</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-[#57534e] mt-2">St. Michael's School &bull; Bhind</p>
+      </footer>
     </div>
   );
 }

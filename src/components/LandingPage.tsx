@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GraduationCap, ShieldCheck, Lock, ArrowRight, X, Sun, Moon } from 'lucide-react';
+import { GraduationCap, ShieldCheck, Lock, ArrowRight, X } from 'lucide-react';
 import { UserRole } from '../types';
 
 interface LandingPageProps {
@@ -11,27 +11,25 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
+  const [step, setStep] = useState<'access_key' | 'security_pin'>('access_key');
 
   const TEACHER_ACCESS_KEY = 'admin1234';
-
-  const [step, setStep] = useState<'access_key' | 'security_pin'>('access_key');
 
   const handleTeacherLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (step === 'access_key') {
       if (password === TEACHER_ACCESS_KEY) {
         setStep('security_pin');
-        setPassword(''); // Clear for PIN
+        setPassword('');
         setError(false);
       } else {
         setError(true);
         setTimeout(() => setError(false), 2000);
       }
     } else {
-      // Calculate real-time PIN: hhmm (12-hour format)
       const now = new Date();
       let hours = now.getHours() % 12;
-      hours = hours ? hours : 12; // Handle 12:00 (0 -> 12)
+      hours = hours ? hours : 12;
       const hh = hours.toString().padStart(2, '0');
       const mm = now.getMinutes().toString().padStart(2, '0');
       const dynamicPin = `${hh}${mm}`;
@@ -46,137 +44,157 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#f8f9fa] px-4 font-['Segoe_UI',Roboto,Helvetica,Arial,sans-serif] relative overflow-hidden transition-colors duration-300">
-      <div className="max-w-4xl w-full text-center relative z-10">
+    <div className="min-h-screen bg-[#fdfcfb] text-[#1c1917] selection:bg-[#1a237e] selection:text-white relative overflow-hidden flex items-center justify-center p-6">
+      {/* Dynamic Background Elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#1a237e]/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#f59e0b]/5 rounded-full blur-[120px]" />
+      </div>
+
+      <div className="max-w-4xl w-full relative z-10">
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-16"
         >
-          <div className="flex justify-center mb-6">
-            <motion.div 
-              animate={{ rotate: [0, 10, -10, 0] }}
-              transition={{ duration: 4, repeat: Infinity }}
-              className="w-20 h-20 bg-gradient-to-br from-[#1a237e] to-[#3949ab] rounded-[2rem] flex items-center justify-center shadow-xl border-4 border-white"
-            >
-              <ShieldCheck className="w-10 h-10 text-white" />
-            </motion.div>
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <div className="w-12 h-12 bg-[#1a237e] rounded-2xl flex items-center justify-center text-white shadow-xl">
+              <ShieldCheck className="w-7 h-7" />
+            </div>
           </div>
-          <h1 className="text-5xl font-black mb-2 text-[#1a237e] uppercase tracking-tighter">
-            SMS Academīc Portal
+          <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-4">
+            Identity <span className="text-[#1a237e]">Confirmation.</span>
           </h1>
-          <p className="text-[#636e72] font-black text-[10px] uppercase tracking-[0.3em] bg-[#1a237e]/5 inline-block px-4 py-1.5 rounded-full border border-[#1a237e]/10">Academic Excellence &bull; Bhind</p>
+          <p className="text-[#57534e] font-medium italic font-editorial text-xl max-w-lg mx-auto">
+            Please select your role to continue.
+          </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-8 mb-16">
+          {/* Student Card */}
           <motion.button
-            whileHover={{ y: -8, scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setShowPasswordPrompt(true)}
-            className="bg-white p-12 rounded-[2.5rem] border border-[#e9ecef] shadow-xl hover:shadow-2xl flex flex-col items-center gap-6 hover:border-[#3949ab] transition-all group relative overflow-hidden"
+            whileHover={{ y: -10 }}
+            onClick={() => onSelectRole('student')}
+            className="group relative bg-white p-10 rounded-[3rem] border-2 border-[#e7e5e4] hover:border-[#1a237e] transition-all text-left overflow-hidden shadow-sm hover:shadow-2xl"
           >
-            <div className="absolute top-0 right-0 p-4 opacity-10 text-[#636e72]">
-              <ShieldCheck className="w-20 h-20" />
-            </div>
-            <div className="w-20 h-20 bg-[#f0f2ff] rounded-3xl flex items-center justify-center group-hover:bg-[#3949ab] group-hover:text-white transition-all duration-500 transform group-hover:rotate-12">
-              <ShieldCheck className="w-10 h-10 text-[#3949ab] group-hover:text-white" />
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-2xl font-black text-[#1a237e] uppercase tracking-tighter">Teacher Portal</h2>
-              <p className="text-[#636e72] text-[10px] font-bold uppercase tracking-widest opacity-60">Admin & Curriculum</p>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700" />
+            
+            <div className="relative z-10">
+              <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-[#1a237e] mb-8 group-hover:bg-[#1a237e] group-hover:text-white transition-colors duration-500">
+                <GraduationCap className="w-8 h-8" />
+              </div>
+              <h3 className="text-3xl font-black uppercase tracking-tighter mb-2 group-hover:text-[#1a237e] transition-colors">Student</h3>
+              <p className="text-sm font-medium text-[#57534e] leading-relaxed mb-8 opacity-80 group-hover:opacity-100">
+                Access your doubt solvers, resources, and assignment assistants.
+              </p>
+              <div className="flex items-center gap-2 text-[#1a237e] font-black uppercase text-[10px] tracking-widest translate-x-0 group-hover:translate-x-2 transition-transform">
+                <span>Enter as Student</span>
+                <ArrowRight className="w-4 h-4" />
+              </div>
             </div>
           </motion.button>
 
+          {/* Teacher Card */}
           <motion.button
-            whileHover={{ y: -8, scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onSelectRole('student')}
-            className="bg-white p-12 rounded-[2.5rem] border border-[#e9ecef] shadow-xl hover:shadow-2xl flex flex-col items-center gap-6 hover:border-[#1a237e] transition-all group relative overflow-hidden"
+            whileHover={{ y: -10 }}
+            onClick={() => setShowPasswordPrompt(true)}
+            className="group relative bg-[#1a237e] p-10 rounded-[3rem] border-2 border-transparent transition-all text-left overflow-hidden shadow-2xl"
           >
-            <div className="absolute top-0 right-0 p-4 opacity-10 text-[#636e72]">
-              <GraduationCap className="w-20 h-20" />
-            </div>
-            <div className="w-20 h-20 bg-[#f0f2ff] rounded-3xl flex items-center justify-center group-hover:bg-[#1a237e] group-hover:text-white transition-all duration-500 transform group-hover:-rotate-12">
-              <GraduationCap className="w-10 h-10 text-[#1a237e] group-hover:text-white" />
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-2xl font-black text-[#1a237e] uppercase tracking-tighter">Student Access</h2>
-              <p className="text-[#636e72] text-[10px] font-bold uppercase tracking-widest opacity-60">Growth & Resources</p>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700" />
+            
+            <div className="relative z-10 text-white">
+              <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center text-white mb-8 group-hover:bg-white group-hover:text-[#1a237e] transition-colors duration-500">
+                <Lock className="w-8 h-8" />
+              </div>
+              <h3 className="text-3xl font-black uppercase tracking-tighter mb-2">Teacher</h3>
+              <p className="text-sm font-medium text-white/70 leading-relaxed mb-8 group-hover:text-white transition-colors">
+                Manage attendance, generate quizzes, and plan lessons.
+              </p>
+              <div className="flex items-center gap-2 text-white font-black uppercase text-[10px] tracking-widest translate-x-0 group-hover:translate-x-2 transition-transform">
+                <span>Secure Teacher Auth</span>
+                <ArrowRight className="w-4 h-4" />
+              </div>
             </div>
           </motion.button>
         </div>
 
-        <motion.footer 
+        <motion.div
           initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="mt-20 text-[#636e72] text-[9px] font-black uppercase tracking-[0.2em] opacity-40 text-center"
+          animate={{ opacity: 0.5 }}
+          className="text-center"
         >
-          SMS Academīc Portal designed for St. Michael's By Abhi Sharma(9-d)
-        </motion.footer>
+          <p className="text-[10px] uppercase font-black tracking-[0.3em] text-[#57534e]">
+            Developed by <span className="text-[#1a237e]">Abhi Sharma(9-D)</span> &bull; Motto: "Light and Truth"
+          </p>
+        </motion.div>
       </div>
 
+      {/* Login Modal */}
       <AnimatePresence>
         {showPasswordPrompt && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-[#1a237e]/40 backdrop-blur-md p-4"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1c1917]/90 backdrop-blur-md"
           >
             <motion.div
-              initial={{ scale: 0.9, y: 20 }}
+              initial={{ scale: 0.9, y: 40 }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl relative border border-[#1a237e]/10"
+              exit={{ scale: 0.9, y: 40 }}
+              className="bg-white rounded-[3rem] w-full max-w-md p-12 relative shadow-2xl"
             >
               <button 
-                onClick={() => setShowPasswordPrompt(false)}
-                className="absolute top-6 right-6 text-[#636e72] hover:text-[#1a237e] transition-colors"
+                onClick={() => {
+                  setShowPasswordPrompt(false);
+                  setStep('access_key');
+                  setPassword('');
+                }}
+                className="absolute top-8 right-8 text-[#57534e] hover:text-[#1a237e] p-2"
               >
                 <X className="w-6 h-6" />
               </button>
 
-              <div className="text-center mb-8">
-                <div className="w-16 h-16 bg-[#f0f2ff] rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <Lock className="w-8 h-8 text-[#1a237e]" />
+              <div className="mb-10">
+                <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-[#1a237e] mb-6">
+                  <ShieldCheck className="w-8 h-8" />
                 </div>
-                <h3 className="text-2xl font-black text-[#1a237e] uppercase tracking-tighter">
-                  {step === 'access_key' ? 'Portal Verification' : 'Identity Confirmed'}
+                <h3 className="text-3xl font-black uppercase tracking-tighter text-[#1a237e]">
+                  {step === 'access_key' ? 'Verification I' : 'Verification II'}
                 </h3>
-                <p className="text-[#636e72] text-xs font-bold uppercase tracking-wider mt-2">
-                  {step === 'access_key' ? 'Enter Teacher Access Key' : 'Enter Secondary Security PIN'}
+                <p className="text-sm font-medium text-[#57534e] mt-2 italic font-editorial text-lg">
+                  {step === 'access_key' ? 'Enter standard educator access key.' : 'Enter dynamic security pin from node.'}
                 </p>
               </div>
 
-              <form onSubmit={handleTeacherLogin} className="space-y-6">
-                <div className="relative">
+              <form onSubmit={handleTeacherLogin} className="space-y-8">
+                <div>
                   <input
                     autoFocus
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className={`w-full px-6 py-4 bg-[#f8f9fa] rounded-xl border-2 transition-all outline-none text-center font-black tracking-[0.3em] text-[#1a237e] ${
-                      error ? 'border-red-500 animate-shake' : 'border-[#e9ecef] focus:border-[#1a237e]'
+                    className={`w-full px-8 py-6 bg-[#f8f9fa] rounded-2xl border-2 transition-all outline-none font-mono text-2xl tracking-[0.5em] text-center ${
+                      error ? 'border-red-500 text-red-500' : 'border-transparent focus:border-[#1a237e]'
                     }`}
                   />
                   {error && (
                     <motion.p 
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-red-500 text-[10px] font-black uppercase tracking-widest text-center mt-3"
+                      className="text-red-500 font-black text-[10px] uppercase text-center mt-4 tracking-widest"
                     >
-                      {step === 'access_key' ? 'Invalid Access Key' : 'Invalid Security PIN'}
+                      Security Alert: Access Denied
                     </motion.p>
                   )}
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full bg-[#1a237e] text-white py-4 rounded-xl font-black uppercase tracking-[0.2em] text-xs flex items-center justify-center gap-2 hover:bg-[#3949ab] transition-all shadow-lg hover:shadow-[#1a237e]/30"
+                  className="w-full bg-[#1a237e] text-white py-6 rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-xl hover:bg-[#283593] active:scale-95 transition-all flex items-center justify-center gap-3"
                 >
-                  {step === 'access_key' ? 'Confirm Identity' : 'Unlock Portal'}
+                  Authorize
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </form>

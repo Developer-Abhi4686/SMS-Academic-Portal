@@ -82,7 +82,6 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
       }
       
       // Filter out ABSENT students based on today's attendance
-      // NOTE: Only hides marked absents. If attendance isn't marked, attDoc won't exist or records will be empty.
       try {
         const today = new Date().toISOString().split('T')[0];
         const docId = `${filterClass}_${filterSection}_${today}`;
@@ -90,9 +89,12 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
         if (attDoc.exists()) {
           const data = attDoc.data();
           const records = data.records || {};
-          // Only filter if there are actually records marked
+          // If attendance is marked for this class, strictly only show Present or Late
           if (Object.keys(records).length > 0) {
-            fetchedStudents = fetchedStudents.filter(s => records[s.id] !== 'A');
+            fetchedStudents = fetchedStudents.filter(s => {
+              const status = records[s.id];
+              return status === 'P' || status === 'L';
+            });
           }
         }
       } catch (e) {
@@ -170,8 +172,6 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
     setStudents(prev => [...prev, newStudent]);
     setNewStudentName('');
     setShowAddForm(false);
-    // Note: In a production app, we would sync this to a specific "Students" collection
-    // but for this portal, manual additions are kept in the session state for safety.
   };
 
   const removeStudent = (id: string) => {
@@ -196,18 +196,18 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
         <div className="flex items-center gap-3">
           <button 
             onClick={onBack}
-            className="p-2 -ml-2 text-[#1a237e] hover:bg-[#f0f2ff] rounded-xl transition-colors"
+            className="p-2 -ml-2 text-[#1a237e] hover:bg-blue-50 rounded-xl transition-colors"
             title="Go Back"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <div className="p-3 rounded-2xl bg-[#f0f2ff] text-[#1a237e] border border-[#e9ecef]">
+          <div className="p-3 rounded-2xl bg-blue-50 text-[#1a237e] border border-blue-100">
             <Users className="w-6 h-6" />
           </div>
           <div>
             <h1 className="text-2xl font-black text-[#1a237e] uppercase tracking-tight">Student Selector</h1>
-            <p className="text-[#636e72] font-bold text-xs uppercase tracking-widest">
-              {students.length} Students in List
+            <p className="text-[#57534e] font-bold text-xs uppercase tracking-widest">
+              {students.length} Students Active
             </p>
           </div>
         </div>
@@ -221,11 +221,11 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
         </button>
       </div>
 
-      <div className="bg-[#f0f2ff] p-4 rounded-2xl border border-[#1a237e]/10 flex flex-wrap gap-4 items-end mb-6">
+      <div className="bg-blue-50 p-4 rounded-2xl border border-[#1a237e]/10 flex flex-wrap gap-4 items-end mb-6">
         <div className="flex-1 min-w-[300px] w-full mb-2">
           <label className="block text-[10px] font-black text-[#1a237e] uppercase tracking-widest mb-2 pl-1">Search Student</label>
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#636e72]" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57534e]" />
             <input 
               type="text"
               placeholder="Type student name..."
@@ -305,12 +305,12 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
             key={student.id}
             animate={{
               scale: selectedIdx === idx ? 1.05 : 1,
-              backgroundColor: selectedIdx === idx ? '#f0f2ff' : '#ffffff',
+              backgroundColor: selectedIdx === idx ? '#eff6ff' : '#ffffff',
               borderColor: selectedIdx === idx ? '#1a237e' : '#e9ecef'
             }}
             className="p-6 rounded-2xl border flex flex-col items-center gap-4 group relative overflow-hidden shadow-sm"
           >
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${selectedIdx === idx ? 'bg-[#1a237e] text-white' : 'bg-[#f8f9fa] text-[#1a237e] border border-[#dee2e6]'} ${calledIds.has(student.id) && selectedIdx !== idx ? 'opacity-40' : ''}`}>
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${selectedIdx === idx ? 'bg-[#1a237e] text-white' : 'bg-[#fdfcfb] text-[#1a237e] border border-[#dee2e6]'} ${calledIds.has(student.id) && selectedIdx !== idx ? 'opacity-40' : ''}`}>
               <UserCircle className="w-8 h-8" />
             </div>
 
@@ -347,7 +347,7 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
       <button
         onClick={handleSelect}
         disabled={isSpinning || students.length === 0}
-        className="w-full bg-gradient-to-r from-[#1a237e] to-[#3949ab] hover:opacity-90 text-white py-5 rounded-2xl flex items-center justify-center gap-3 font-black text-lg uppercase tracking-widest shadow-lg transition-all disabled:opacity-50"
+        className="w-full bg-gradient-to-r from-[#1a237e] to-[#283593] hover:opacity-90 text-white py-5 rounded-2xl flex items-center justify-center gap-3 font-black text-lg uppercase tracking-widest shadow-lg transition-all disabled:opacity-50"
       >
         <RotateCcw className={`w-6 h-6 ${isSpinning ? 'animate-spin' : ''}`} />
         {isSpinning ? 'Selecting...' : 'Select Student'}
@@ -357,11 +357,11 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center p-8 bg-[#f0f2ff] border border-[#1a237e]/20 rounded-2xl"
+          className="text-center p-8 bg-blue-50 border border-blue-200 rounded-2xl"
         >
           <p className="text-[#1a237e] text-[10px] uppercase tracking-widest font-black mb-1">Selected Student</p>
           <h3 className="text-3xl font-black text-[#1a237e] uppercase">{students[selectedIdx].fullName}</h3>
-          <p className="text-[#636e72] font-bold text-xs mt-2 uppercase">Ready to answer your question!</p>
+          <p className="text-[#57534e] font-bold text-xs mt-2 uppercase">Ready to answer your question!</p>
         </motion.div>
       )}
     </div>

@@ -1,15 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Cpu, 
   X, 
   Send, 
-  MessageSquare,
   Sparkles,
-  User,
-  RotateCcw,
   Zap,
-  Globe
+  Globe,
+  Plus
 } from 'lucide-react';
 import { getGeminiResponse, prompts } from '../lib/geminiService';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -30,10 +27,9 @@ export default function AIChatOverlay({ role }: AIChatOverlayProps) {
   const [messages, setMessages] = useState<Message[]>([]);
 
   useEffect(() => {
-    // Set initial message based on role
     const welcomeText = role === 'teacher' 
-      ? "Greetings. I am Zehn, the institutional AI assistant for the SMS Academic Portal. I am here to assist you with administrative tasks, lesson planning, and professional pedagogical support. How can I help you excel today at St. Michael's?"
-      : "Hey! I'm Zehn, your AI companion in the SMS Academic Portal. 🚀 Whether you need help with your percentage calculations, assignments, or just want to chat about school life at St. Michael's, I've got your back!";
+      ? "Greetings. I am Zehn, your institutional AI analyst. I'm here to streamline your administrative workload and coordinate pedagogical strategies. How may I assist your mission today?"
+      : "Hey! I'm Zehn. 🚀 Consider me your secondary cognitive node. Whether it's complex math, assignment structures, or school life—I'm ready to sync. What's on the agenda?";
     
     setMessages([
       {
@@ -47,10 +43,8 @@ export default function AIChatOverlay({ role }: AIChatOverlayProps) {
 
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(false);
-  
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -77,7 +71,6 @@ export default function AIChatOverlay({ role }: AIChatOverlayProps) {
         .join('\n');
       
       const fullPrompt = `${chatHistory}\nUser: ${text}\nZehn:`;
-      
       const systemPrompt = role === 'teacher' ? prompts.teacherSchoolCompanion : prompts.schoolCompanion;
       const aiResponse = await getGeminiResponse(fullPrompt, systemPrompt);
       
@@ -98,133 +91,129 @@ export default function AIChatOverlay({ role }: AIChatOverlayProps) {
 
   return (
     <>
-      {/* Floating Button */}
-      <div className="fixed bottom-24 sm:bottom-6 right-6 z-[60]">
-        <motion.button
-          whileHover={{ scale: 1.05, y: -5 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setIsOpen(!isOpen)}
-          className={`group relative w-14 h-14 rounded-2xl flex items-center justify-center shadow-2xl transition-all duration-500 border overflow-hidden ${
-            isOpen 
-              ? 'bg-white border-[#e9ecef] shadow-xl' 
-              : 'bg-[#1a237e] border-white/20 shadow-[0_10px_30px_rgba(26,35,126,0.3)]'
-          }`}
-        >
-          {/* Animated Background for idle state */}
-          {!isOpen && (
-            <motion.div 
-              animate={{ 
-                background: [
-                  'linear-gradient(45deg, #1a237e, #3949ab)',
-                  'linear-gradient(45deg, #3949ab, #1a237e)',
-                ]
-              }}
-              transition={{ duration: 3, repeat: Infinity, repeatType: "reverse" }}
-              className="absolute inset-0 opacity-100"
-            />
-          )}
-          
-          <div className="relative z-10">
-            {isOpen ? (
-              <X className="w-6 h-6 text-[#1a237e]" />
-            ) : (
-              <Zap className="w-6 h-6 text-[#00b8d4] fill-[#00b8d4] group-hover:scale-110 transition-transform" />
-            )}
-          </div>
-        </motion.button>
-      </div>
+      {/* Floating Trigger - Refined */}
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-10 right-10 w-16 h-16 bg-[#943a1a] text-white rounded-full shadow-2xl flex items-center justify-center z-[100] border-4 border-white overflow-hidden group"
+      >
+        <Sparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+        <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+      </motion.button>
 
-      {/* Chat Dialog */}
+      {/* Side Assist Panel */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9, y: 20, transformOrigin: 'bottom right' }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="fixed bottom-40 sm:bottom-24 right-6 w-[380px] max-w-[calc(100vw-3rem)] h-[550px] max-h-[calc(100vh-12rem)] bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.2)] z-[60] flex flex-col overflow-hidden border border-white/50"
-          >
-            {/* Header */}
-            <div className="bg-gradient-to-br from-[#1a237e] via-[#311b92] to-[#1a237e] p-8 text-white relative">
-              <div className="absolute -top-10 -right-10 w-40 h-40 bg-[#00b8d4]/10 rounded-full blur-3xl" />
-              <div className="flex items-center gap-5 relative z-10">
-                <div className="relative">
-                  <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-xl overflow-hidden group">
-                    <Zap className="w-8 h-8 text-[#00b8d4] fill-[#00b8d4] animate-pulse" />
-                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 bg-[#1c1917]/20 backdrop-blur-sm z-[110]"
+            />
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-y-0 right-0 w-full max-w-md bg-[#fdfcfb] shadow-[-20px_0_60px_rgba(0,0,0,0.1)] z-[120] flex flex-col border-l border-[#e7e5e4]"
+            >
+              {/* Header: Editorial & Sophisticated */}
+              <div className="p-10 pb-6 border-b border-[#e7e5e4]">
+                <div className="flex justify-between items-start mb-10">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-[#943a1a] rounded-2xl flex items-center justify-center text-white shadow-lg">
+                      <Zap className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-3xl font-black uppercase tracking-tighter text-[#943a1a]">Zehn</h3>
+                      <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">Intelligence Node</p>
+                    </div>
                   </div>
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-[#1a237e] rounded-full" />
+                  <button 
+                    onClick={() => setIsOpen(false)}
+                    className="p-3 bg-[#f7f5f2] rounded-full text-[#57534e] hover:text-[#943a1a] hover:bg-white transition-all border border-[#e7e5e4]"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
-                <div>
-                  <h3 className="font-black text-lg tracking-tight">ZEHN <span className="text-[#00b8d4] font-light">OS</span></h3>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/50">
-                    {role === 'teacher' ? 'Institutional AI Assistant' : 'Next-Gen Academic Proxy'}
-                  </p>
+                
+                <div className="flex items-center gap-3">
+                  <div className="flex -space-x-2">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="w-6 h-6 rounded-full border-2 border-[#fdfcfb] bg-[#f7f5f2] flex items-center justify-center">
+                        <Sparkles className="w-3 h-3 text-[#943a1a] opacity-30" />
+                      </div>
+                    ))}
+                  </div>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-[#57534e] opacity-60">System Online & Active</span>
                 </div>
               </div>
-            </div>
 
-            {/* Messages */}
-            <div 
-              ref={scrollRef}
-              className="flex-1 overflow-y-auto px-6 py-6 space-y-6 bg-[#f8f9fa]/50 custom-scrollbar"
-            >
-              {messages.map((msg) => (
-                <div 
-                  key={msg.id} 
-                  className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`flex flex-col gap-1.5 max-w-[85%] ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
-                    <div className={`px-4 py-3 rounded-2xl text-[13px] font-medium leading-[1.6] transition-all shadow-sm ${
+              {/* Chat Canvas */}
+              <div 
+                ref={scrollRef}
+                className="flex-1 overflow-y-auto px-8 py-8 space-y-8 bg-[#fdfcfb] custom-scrollbar"
+              >
+                {messages.map((msg) => (
+                  <div 
+                    key={msg.id} 
+                    className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+                  >
+                    <div className={`max-w-[90%] px-6 py-4 rounded-[2rem] transition-all ${
                       msg.sender === 'ai' 
-                        ? 'bg-white border border-[#e9ecef] text-[#2d3436] rounded-tl-none' 
-                        : 'bg-[#1a237e] text-white rounded-tr-none'
+                        ? 'bg-[#f7f5f2] border border-[#e7e5e4] text-[#1c1917] rounded-tl-none' 
+                        : 'bg-[#943a1a] text-white rounded-tr-none shadow-lg'
                     }`}>
                       <MarkdownRenderer content={msg.text} />
                     </div>
-                    <span className="text-[9px] font-bold text-[#b2bec3] uppercase tracking-widest px-1">
-                      {msg.sender === 'ai' ? 'Zehn' : 'You'} • {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    <span className="mt-3 text-[8px] font-black uppercase tracking-widest text-[#57534e] opacity-40">
+                      {msg.sender === 'ai' ? 'Analytical Output' : 'User Request'} &bull; {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                </div>
-              ))}
-              {loading && (
-                <div className="flex justify-start">
-                  <div className="bg-white border border-[#e9ecef] px-5 py-4 rounded-2xl rounded-tl-none shadow-sm flex gap-1.5 items-center">
-                    <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6 }} className="w-1.5 h-1.5 bg-[#00b8d4] rounded-full" />
-                    <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} className="w-1.5 h-1.5 bg-[#3949ab] rounded-full" />
-                    <motion.div animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} className="w-1.5 h-1.5 bg-[#1a237e] rounded-full" />
+                ))}
+                {loading && (
+                  <div className="flex gap-2 p-4 bg-[#f7f5f2] rounded-2xl w-fit">
+                    <motion.div animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1 }} className="w-1.5 h-1.5 rounded-full bg-[#943a1a]" />
+                    <motion.div animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-1.5 h-1.5 rounded-full bg-[#943a1a]" />
+                    <motion.div animate={{ opacity: [0, 1, 0] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-1.5 h-1.5 rounded-full bg-[#943a1a]" />
+                  </div>
+                )}
+              </div>
+
+              {/* Input Surface */}
+              <div className="p-8 border-t border-[#e7e5e4] bg-white">
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+                    <Plus className="w-4 h-4 text-[#943a1a]" />
+                  </div>
+                  <input 
+                    type="text"
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                    placeholder={role === 'teacher' ? "Execute command..." : "Engage with Zehn..."}
+                    className="w-full pl-14 pr-24 py-5 bg-[#f7f5f2] rounded-[1.5rem] border-2 border-transparent focus:border-[#943a1a] outline-none font-bold text-xs transition-all"
+                  />
+                  <div className="absolute inset-y-2 right-2 flex items-center">
+                    <button 
+                      onClick={() => handleSend()}
+                      disabled={!inputText.trim() || loading}
+                      className="px-6 h-full bg-[#943a1a] text-white rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-[#c2410c] transition-all shadow-lg disabled:opacity-50 disabled:shadow-none"
+                    >
+                      Process <Send className="w-3 h-3" />
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
-
-            {/* Input Area */}
-            <div className="p-6 bg-white border-t border-[#e9ecef]">
-              <div className="flex items-center gap-3 bg-[#f1f3f5] p-2 rounded-2xl border border-[#e9ecef] focus-within:border-[#1a237e] transition-colors group">
-                <input 
-                  type="text"
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder={role === 'teacher' ? "Consult with Zehn..." : "Sync with Zehn..."}
-                  className="flex-1 bg-transparent px-3 py-2 text-[13px] font-bold focus:outline-none placeholder:text-[#b2bec3]"
-                />
-                <button 
-                  onClick={() => handleSend()}
-                  disabled={!inputText.trim() || loading}
-                  className="p-3 bg-[#1a237e] text-white rounded-xl shadow-lg hover:shadow-[#1a237e]/40 transition-all disabled:opacity-50 disabled:shadow-none"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
-              </div>
-              <div className="flex items-center justify-center mt-4">
-                <div className="flex items-center gap-2 grayscale h-3 opacity-30">
+                <div className="mt-6 flex items-center justify-center gap-3 grayscale opacity-30">
                   <Globe className="w-3 h-3" />
-                  <span className="text-[8px] font-black uppercase tracking-[0.3em]">Encrypted Core Connection</span>
+                  <span className="text-[8px] font-black uppercase tracking-[0.4em]">Integrated Academic Network</span>
                 </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </>

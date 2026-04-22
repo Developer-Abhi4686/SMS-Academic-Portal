@@ -52,7 +52,7 @@ export default function ClassSelection({ onClassSelect }: ClassSelectionProps) {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center bg-[#f8f9fa] px-4 font-['Segoe_UI',Roboto,Helvetica,Arial,sans-serif] transition-colors duration-300">
+    <div className="min-h-screen relative flex items-center justify-center bg-[#fdfcfb] px-4 font-['Space_Grotesk',sans-serif] transition-colors duration-300">
       <div className="max-w-xl w-full text-center relative z-10">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -65,10 +65,10 @@ export default function ClassSelection({ onClassSelect }: ClassSelectionProps) {
             </div>
           </div>
           <h1 className="text-3xl font-black text-[#1a237e] uppercase tracking-tight mb-2">
-            Welcome to SMS Academīc Portal
+            Welcome to SMS Portal
           </h1>
-          <h2 className="text-[#636e72] font-semibold text-xs uppercase tracking-widest px-4">
-            St Michael's School, Bhind &bull; Academic Portal
+          <h2 className="text-[#57534e] font-semibold text-xs uppercase tracking-widest px-4">
+            St Michael's School, Bhind &bull; Hub
           </h2>
         </motion.div>
 
@@ -76,14 +76,14 @@ export default function ClassSelection({ onClassSelect }: ClassSelectionProps) {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1 }}
-          className="bg-white p-8 rounded-xl border border-[#dee2e6] shadow-lg transition-colors duration-300"
+          className="bg-white p-10 rounded-[3rem] border border-[#e7e5e4] shadow-lg transition-colors duration-300"
         >
-          <h3 className="text-lg font-bold mb-6 text-[#1a237e]">Select Class and Section</h3>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <h3 className="text-lg font-black uppercase tracking-tighter mb-8 text-[#1a237e]">Select Your Profile</h3>
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="text-left space-y-2">
-                <label className="text-[10px] font-black text-[#636e72] uppercase tracking-[0.2em] pl-1">
-                  Academic Class
+                <label className="text-[10px] font-black text-[#57534e] uppercase tracking-[0.2em] pl-1">
+                  Target Grade
                 </label>
                 <div className="relative">
                   <select
@@ -92,37 +92,37 @@ export default function ClassSelection({ onClassSelect }: ClassSelectionProps) {
                       setSelected(e.target.value);
                       setSection(''); // Reset section when class changes
                     }}
-                    className="w-full bg-[#f8f9fa] border border-[#dee2e6] rounded-lg p-4 text-[#1a1a1a] focus:border-[#1a237e] outline-none font-bold appearance-none transition-all cursor-pointer"
+                    className="w-full bg-[#f8f9fa] border-2 border-transparent rounded-2xl p-5 text-[#1c1917] focus:border-[#1a237e] outline-none font-bold appearance-none transition-all cursor-pointer"
                   >
                     <option value="" disabled>Grade...</option>
                     {CLASSES.map((cls) => (
                       <option key={cls} value={cls}>{cls}</option>
                     ))}
                   </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <ChevronRight className="w-5 h-5 text-[#636e72] rotate-90" />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#1a237e]">
+                    <ChevronRight className="w-5 h-5 rotate-90" />
                   </div>
                 </div>
               </div>
 
               <div className="text-left space-y-2">
-                <label className="text-[10px] font-black text-[#636e72] uppercase tracking-[0.2em] pl-1">
-                  Section
+                <label className="text-[10px] font-black text-[#57534e] uppercase tracking-[0.2em] pl-1">
+                  Target Section
                 </label>
                 <div className="relative">
                   <select
                     value={section}
                     disabled={!selected}
                     onChange={(e) => setSection(e.target.value)}
-                    className="w-full bg-[#f8f9fa] border border-[#dee2e6] rounded-lg p-4 text-[#1a1a1a] focus:border-[#1a237e] outline-none font-bold appearance-none transition-all cursor-pointer disabled:opacity-50"
+                    className="w-full bg-[#f8f9fa] border-2 border-transparent rounded-2xl p-5 text-[#1c1917] focus:border-[#1a237e] outline-none font-bold appearance-none transition-all cursor-pointer disabled:opacity-50"
                   >
                     <option value="" disabled>Section...</option>
                     {sections.map((s) => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <ChevronRight className="w-5 h-5 text-[#636e72] rotate-90" />
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[#1a237e]">
+                    <ChevronRight className="w-5 h-5 rotate-90" />
                   </div>
                 </div>
               </div>
@@ -131,13 +131,13 @@ export default function ClassSelection({ onClassSelect }: ClassSelectionProps) {
             <button
               type="submit"
               disabled={!selected || !section || loading}
-              className="w-full bg-gradient-to-r from-[#1a237e] to-[#303f9f] hover:opacity-95 text-white font-black py-4 rounded-lg transition-all text-xs tracking-[0.2em] shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
+              className="w-full bg-gradient-to-r from-[#1a237e] to-[#283593] hover:opacity-95 text-white font-black py-5 rounded-[2rem] transition-all text-[10px] uppercase tracking-[0.3em] shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 group"
             >
               {loading ? (
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               ) : (
                 <>
-                  ENTER SMS PORTAL
+                  Continue
                   <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
@@ -145,8 +145,8 @@ export default function ClassSelection({ onClassSelect }: ClassSelectionProps) {
           </form>
         </motion.div>
 
-        <footer className="mt-12 text-[#636e72] text-[9px] md:text-xs font-bold uppercase tracking-[0.15em] md:tracking-widest px-4 leading-relaxed">
-          <p>SMS Academīc Portal designed for St. Michael's By Abhi Sharma(9-d)</p>
+        <footer className="mt-12 text-[#57534e] text-[9px] md:text-xs font-bold uppercase tracking-[0.2em] px-4 leading-relaxed opacity-50">
+          <p>SMS Portal &bull; Credit: Abhi Sharma(9-D)</p>
         </footer>
       </div>
     </div>

@@ -11,7 +11,7 @@ interface MarkdownRendererProps {
 
 export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
   return (
-    <div className="markdown-body prose max-w-none text-[#1a1a1a] prose-headings:text-[#1a237e] prose-headings:font-black prose-p:font-medium prose-p:text-sm">
+    <div className="markdown-body prose max-w-none text-[#1c1917] prose-headings:text-[#943a1a] prose-headings:font-black prose-p:font-medium prose-p:text-sm">
       <ReactMarkdown
         remarkPlugins={[remarkMath]}
         rehypePlugins={[rehypeKatex, rehypeRaw]}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { ShieldCheck, Mail, Lock, User, GraduationCap, Info, Loader2 } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, User, GraduationCap, Info, Loader2, Sparkles, ArrowRight } from 'lucide-react';
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
@@ -35,7 +35,6 @@ export default function AuthModal({ onSuccess, onContinueGuest }: AuthModalProps
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   
-  // States for post-social login role selection
   const [showRoleSelection, setShowRoleSelection] = useState(false);
   const [pendingSocialUser, setPendingSocialUser] = useState<any>(null);
 
@@ -51,16 +50,11 @@ export default function AuthModal({ onSuccess, onContinueGuest }: AuthModalProps
       if (userDoc.exists()) {
         onSuccess(userDoc.data() as UserProfile);
       } else {
-        // Stop and show role selection if new user
         setPendingSocialUser(user);
         setShowRoleSelection(true);
       }
     } catch (err: any) {
-      if (err.code === 'auth/operation-not-allowed') {
-        setError('Google login not enabled. Please fix in Firebase Console.');
-      } else {
-        setError(err.message || 'Google login failed');
-      }
+      setError(err.message || 'Google authentication failed');
     } finally {
       setLoading(false);
     }
@@ -72,9 +66,9 @@ export default function AuthModal({ onSuccess, onContinueGuest }: AuthModalProps
     try {
       const profile: UserProfile = {
         uid: pendingSocialUser.uid,
-        fullName: pendingSocialUser.displayName || 'Guest User',
+        fullName: pendingSocialUser.displayName || 'Guest Identity',
         email: pendingSocialUser.email || '',
-        role: role, // Use selected role
+        role: role,
         userClass: null,
         section: null,
         createdAt: new Date().toISOString()
@@ -82,7 +76,7 @@ export default function AuthModal({ onSuccess, onContinueGuest }: AuthModalProps
       await setDoc(doc(db, 'users', pendingSocialUser.uid), profile);
       onSuccess(profile);
     } catch (err: any) {
-      setError(err.message || 'Failed to save profile');
+      setError(err.message || 'Verification system failure');
     } finally {
       setLoading(false);
     }
@@ -102,7 +96,7 @@ export default function AuthModal({ onSuccess, onContinueGuest }: AuthModalProps
         } else {
           onSuccess({
             uid: userCredential.user.uid,
-            fullName: userCredential.user.displayName || 'User',
+            fullName: userCredential.user.displayName || 'Academic User',
             email: userCredential.user.email || email,
             role: 'student',
             userClass: null,
@@ -111,7 +105,6 @@ export default function AuthModal({ onSuccess, onContinueGuest }: AuthModalProps
           });
         }
       } else {
-        // Signup logic
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(userCredential.user, { displayName: fullName });
         
@@ -129,150 +122,144 @@ export default function AuthModal({ onSuccess, onContinueGuest }: AuthModalProps
         onSuccess(profile);
       }
     } catch (err: any) {
-      console.error('Auth Error:', err);
-      if (err.code === 'auth/operation-not-allowed') {
-        setError('Login method not enabled in Firebase Console. Enable Email/Password.');
-      } else if (err.code === 'auth/email-already-in-use') {
-        setError('This email is already registered. Try logging in.');
-      } else if (err.code === 'auth/weak-password') {
-        setError('Password should be at least 6 characters.');
-      } else {
-        setError(err.message || 'Authentication failed');
-      }
+       setError(err.message || 'Authentication sequence failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-[#0a0a0a]/50 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-[#1c1917]/40 backdrop-blur-[12px] z-[100] flex items-center justify-center p-6">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-white w-full max-w-[320px] rounded-[28px] overflow-hidden shadow-2xl border border-[#f1f3f5] max-h-[95vh] overflow-y-auto"
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        className="bg-[#fdfcfb] w-full max-w-sm rounded-[3rem] overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.2)] border border-[#e7e5e4] max-h-[92vh] flex flex-col"
       >
-        <div className="p-6">
+        <div className="p-10 md:p-12 overflow-y-auto custom-scrollbar">
           {showRoleSelection ? (
-            <div className="space-y-6 text-center">
-              <div className="w-10 h-10 bg-[#f0f2ff] rounded-2xl flex items-center justify-center mx-auto mb-4 border border-[#e9ecef]">
-                <GraduationCap className="w-5 h-5 text-[#1a237e]" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-[#1a1a1a] tracking-tight">Final Step</h2>
-                <p className="text-[#636e72] text-[11px] font-medium mt-1">Select your academic role to continue.</p>
+            <div className="space-y-10">
+              <div className="text-center space-y-3">
+                <div className="w-16 h-16 bg-[#fff7ed] rounded-[1.5rem] flex items-center justify-center mx-auto text-[#943a1a] shadow-inner mb-2">
+                  <GraduationCap className="w-8 h-8" />
+                </div>
+                <h2 className="text-2xl font-black uppercase tracking-tighter">Final <span className="font-editorial text-[#943a1a]">Verification</span></h2>
+                <p className="text-[#57534e] text-xs font-bold uppercase tracking-widest opacity-60 leading-relaxed px-4">Identify your academic status to initialize dashboard.</p>
               </div>
               
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-3">
                 <button
                   onClick={() => setRole('teacher')}
-                  className={`py-3 rounded-2xl border text-[10px] font-bold transition-all ${
-                    role === 'teacher' ? 'bg-[#1a237e] text-white border-[#1a237e]' : 'bg-[#f8f9fa] text-[#636e72] border-transparent'
+                  className={`flex items-center justify-between p-6 rounded-[1.5rem] border-2 transition-all ${
+                    role === 'teacher' ? 'bg-[#943a1a] border-[#943a1a] text-white' : 'bg-white border-[#e7e5e4] text-[#1c1917]'
                   }`}
                 >
-                  TEACHER
+                  <span className="text-[11px] font-black uppercase tracking-widest leading-none">Institutional Staff</span>
+                  <div className={`w-2 h-2 rounded-full ${role === 'teacher' ? 'bg-white' : 'bg-[#e7e5e4]'}`} />
                 </button>
                 <button
                   onClick={() => setRole('student')}
-                  className={`py-3 rounded-2xl border text-[10px] font-bold transition-all ${
-                    role === 'student' ? 'bg-[#1a237e] text-white border-[#1a237e]' : 'bg-[#f8f9fa] text-[#636e72] border-transparent'
+                  className={`flex items-center justify-between p-6 rounded-[1.5rem] border-2 transition-all ${
+                    role === 'student' ? 'bg-[#943a1a] border-[#943a1a] text-white' : 'bg-white border-[#e7e5e4] text-[#1c1917]'
                   }`}
                 >
-                  STUDENT
+                  <span className="text-[11px] font-black uppercase tracking-widest leading-none">Matriculated Student</span>
+                  <div className={`w-2 h-2 rounded-full ${role === 'student' ? 'bg-white' : 'bg-[#e7e5e4]'}`} />
                 </button>
               </div>
 
               <button
                 onClick={handleSocialRoleSelected}
                 disabled={loading}
-                className="w-full bg-[#1a237e] text-white font-bold py-3 rounded-2xl transition-all text-[12px] shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full bg-[#943a1a] text-white py-5 rounded-[1.5rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-[#943a1a]/30 disabled:opacity-50 hover:bg-[#c2410c] transition-all flex items-center justify-center gap-3"
               >
-                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'COMPLETE REGISTRATION'}
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Finalize Access <ArrowRight className="w-3 h-3" /></>}
               </button>
             </div>
           ) : (
-            <>
-              <div className="text-center mb-5">
-                <div className="w-10 h-10 bg-[#1a237e] rounded-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-[#1a237e]/10">
-                  <ShieldCheck className="w-5 h-5 text-white" />
+            <div className="space-y-8">
+              <header className="text-center space-y-3">
+                <div className="w-12 h-12 bg-[#943a1a] rounded-[1.25rem] flex items-center justify-center mx-auto text-white shadow-xl shadow-[#943a1a]/20 mb-2">
+                  <ShieldCheck className="w-6 h-6" />
                 </div>
-                <h2 className="text-lg font-bold text-[#1a1a1a] tracking-tight">
-                  {isLogin ? 'Welcome back' : 'New Registry'}
+                <h2 className="text-3xl font-black uppercase tracking-tighter">
+                  {isLogin ? 'Secure' : 'New'} <span className="font-editorial text-[#943a1a]">{isLogin ? 'Access' : 'Registry'}</span>
                 </h2>
-                <p className="text-[#636e72] text-[11px] font-medium mt-0.5">
-                  {isLogin ? 'Access your dashboard' : 'Join St. Michael\'s Portal'}
-                </p>
-              </div>
+                <div className="flex items-center justify-center gap-2">
+                   <Sparkles className="w-3 h-3 text-[#f59e0b] opacity-40" />
+                   <p className="text-[9px] font-black uppercase tracking-[0.3em] text-[#57534e] opacity-40">SMS Institutional Node</p>
+                </div>
+              </header>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <button
                   onClick={handleGoogleLogin}
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-white border border-[#e9ecef] rounded-2xl text-[12px] font-semibold text-[#1a1a1a] hover:bg-[#f8f9fa] transition-all disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-4 py-4 bg-white border border-[#e7e5e4] rounded-[1.25rem] text-[11px] font-black uppercase tracking-widest text-[#1c1917] hover:bg-[#f7f5f2] transition-all disabled:opacity-50 shadow-sm"
                 >
                   <GoogleIcon />
-                  Google Access
+                  Google Authentication
                 </button>
 
-                <div className="relative py-1.5">
-                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#f1f3f5]"></div></div>
-                  <div className="relative flex justify-center text-[9px] font-bold bg-white px-3 text-[#adb5bd] uppercase tracking-widest">or email</div>
+                <div className="relative py-2">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#e7e5e4]"></div></div>
+                  <div className="relative flex justify-center text-[8px] font-black bg-[#fdfcfb] px-4 text-[#adb5bd] uppercase tracking-[0.4em]">Direct Link</div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-3">
+                <form onSubmit={handleSubmit} className="space-y-4">
                   {!isLogin && (
-                    <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#adb5bd]" />
+                    <div className="relative group">
+                      <User className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-[#943a1a] pointer-events-none group-focus-within:scale-110 transition-transform" />
                       <input
                         type="text"
                         required
                         value={fullName}
                         onChange={(e) => setFullName(e.target.value)}
-                        className="w-full bg-[#f8f9fa] border border-transparent rounded-2xl py-2.5 pl-10 pr-4 text-[12px] font-semibold text-[#1a1a1a] focus:bg-white focus:border-[#1a237e] outline-none transition-all placeholder:text-[#adb5bd] placeholder:font-normal"
-                        placeholder="Real Name"
+                        className="w-full bg-[#f7f5f2] border-none rounded-[1.25rem] py-4 pl-14 pr-6 text-[12px] font-bold text-[#1c1917] focus:ring-2 ring-[#943a1a]/10 outline-none transition-all placeholder:text-[#adb5bd]"
+                        placeholder="ALPHABETIC NAME"
                       />
                     </div>
                   )}
 
-                  <div className="relative">
-                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#adb5bd]" />
+                  <div className="relative group">
+                    <Mail className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-[#943a1a] pointer-events-none" />
                     <input
                       type="email"
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-[#f8f9fa] border border-transparent rounded-2xl py-2.5 pl-10 pr-4 text-[12px] font-semibold text-[#1a1a1a] focus:bg-white focus:border-[#1a237e] outline-none transition-all placeholder:text-[#adb5bd] placeholder:font-normal"
-                      placeholder="Email ID"
+                      className="w-full bg-[#f7f5f2] border-none rounded-[1.25rem] py-4 pl-14 pr-6 text-[12px] font-bold text-[#1c1917] focus:ring-2 ring-[#943a1a]/10 outline-none transition-all placeholder:text-[#adb5bd]"
+                      placeholder="NETWORK ADDRESS (EMAIL)"
                     />
                   </div>
 
-                  <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#adb5bd]" />
+                  <div className="relative group">
+                    <Lock className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-4 text-[#943a1a] pointer-events-none" />
                     <input
                       type="password"
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-[#f8f9fa] border border-transparent rounded-2xl py-2.5 pl-10 pr-4 text-[12px] font-semibold text-[#1a1a1a] focus:bg-white focus:border-[#1a237e] outline-none transition-all placeholder:text-[#adb5bd] placeholder:font-normal"
-                      placeholder="Security Code"
+                      className="w-full bg-[#f7f5f2] border-none rounded-[1.25rem] py-4 pl-14 pr-6 text-[12px] font-bold text-[#1c1917] focus:ring-2 ring-[#943a1a]/10 outline-none transition-all placeholder:text-[#adb5bd]"
+                      placeholder="ACCESS KEY"
                     />
                   </div>
 
                   {!isLogin && (
-                    <div className="grid grid-cols-2 gap-2 pt-0.5">
+                    <div className="flex p-1 bg-[#f7f5f2] rounded-2xl gap-1">
                       <button
                         type="button"
                         onClick={() => setRole('teacher')}
-                        className={`py-2 rounded-xl border text-[9px] font-bold transition-all ${
-                          role === 'teacher' ? 'bg-[#1a237e] text-white border-[#1a237e]' : 'bg-[#f8f9fa] text-[#636e72] border-transparent'
+                        className={`flex-1 py-3 rounded-xl text-[9px] font-black tracking-widest transition-all ${
+                          role === 'teacher' ? 'bg-[#943a1a] text-white shadow-md' : 'text-[#57534e]'
                         }`}
                       >
-                        TEACHER
+                        STAFF
                       </button>
                       <button
                         type="button"
                         onClick={() => setRole('student')}
-                        className={`py-2 rounded-xl border text-[9px] font-bold transition-all ${
-                          role === 'student' ? 'bg-[#1a237e] text-white border-[#1a237e]' : 'bg-[#f8f9fa] text-[#636e72] border-transparent'
+                        className={`flex-1 py-3 rounded-xl text-[9px] font-black tracking-widest transition-all ${
+                          role === 'student' ? 'bg-[#943a1a] text-white shadow-md' : 'text-[#57534e]'
                         }`}
                       >
                         STUDENT
@@ -281,38 +268,40 @@ export default function AuthModal({ onSuccess, onContinueGuest }: AuthModalProps
                   )}
 
                   {error && (
-                    <div className="p-2.5 rounded-xl bg-red-50 border border-red-100 flex items-center gap-2">
-                      <Info className="w-3 h-3 text-red-500 shrink-0" />
-                      <p className="text-red-700 text-[9px] font-bold leading-tight">{error}</p>
+                    <div className="p-4 rounded-2xl bg-red-50 border border-red-100 flex items-start gap-3">
+                      <Info className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                      <p className="text-red-700 text-[10px] font-bold leading-relaxed">{error}</p>
                     </div>
                   )}
 
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-[#1a237e] hover:bg-[#1a237e]/90 text-white font-bold py-3 rounded-2xl transition-all text-[12px] shadow-lg shadow-[#1a237e]/10 disabled:opacity-50 flex items-center justify-center gap-2 mt-1"
+                    className="w-full bg-[#943a1a] py-5 rounded-[1.25rem] font-black uppercase tracking-[0.2em] text-[10px] text-white shadow-xl shadow-[#943a1a]/20 hover:bg-[#c2410c] transition-all disabled:opacity-50 mt-4"
                   >
-                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (isLogin ? 'Access Portal' : 'Register')}
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : (isLogin ? 'Initiate Session' : 'Create Account')}
                   </button>
                 </form>
               </div>
 
-              <div className="mt-5 text-center space-y-3">
+              <div className="pt-4 space-y-6 text-center">
                 <button
                   onClick={() => setIsLogin(!isLogin)}
-                  className="text-[11px] font-semibold text-[#636e72] hover:text-[#1a237e] transition-colors"
+                  className="text-[10px] font-black uppercase tracking-[0.2em] text-[#57534e] hover:text-[#943a1a] transition-all"
                 >
-                  {isLogin ? "Need an account? Join Registry" : "Already registered? Login"}
+                  {isLogin ? "Transition to Registry" : "Return to Access Node"}
                 </button>
+                
+                <div className="h-px w-10 bg-[#e7e5e4] mx-auto opacity-40" />
                 
                 <button
                   onClick={onContinueGuest}
-                  className="block w-full py-2.5 rounded-2xl border border-[#e9ecef] text-[10px] font-bold text-[#636e72] uppercase tracking-widest hover:bg-[#f8f9fa] transition-all"
+                  className="text-[9px] font-black uppercase tracking-[0.4em] text-[#adb5bd] hover:text-[#943a1a] transition-all"
                 >
-                  Guest Access
+                  Bypass (Guest)
                 </button>
               </div>
-            </>
+            </div>
           )}
         </div>
       </motion.div>
