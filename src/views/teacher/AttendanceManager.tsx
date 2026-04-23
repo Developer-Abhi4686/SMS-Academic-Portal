@@ -69,6 +69,8 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
 
   const fetchStudents = async () => {
     setLoading(true);
+    setAttendance({}); // Reset attendance state when fetching new class
+    setIsSubmitted(false); // Reset submission state
     try {
       let fetchedStudents: Student[] = [];
       
@@ -110,14 +112,24 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
         }));
       }
       
-      fetchedStudents.sort((a, b) => a.fullName.localeCompare(b.fullName));
-      setStudents(fetchedStudents);
+      // Deduplicate by ID and Sort
+      const uniqueStudents = Array.from(new Map(fetchedStudents.map(s => [s.id, s])).values());
+      uniqueStudents.sort((a, b) => a.fullName.localeCompare(b.fullName));
+      setStudents(uniqueStudents);
 
       // Fetch today's records if they exist
       const docId = `${userClass}_${userSection}_${today}`;
       const attDoc = await getDoc(doc(db, 'attendance', docId));
       if (attDoc.exists()) {
-        setAttendance(attDoc.data().records || {});
+        const savedRecords = attDoc.data().records || {};
+        // Only keep records for students currently in the class
+        const validRecords: AttendanceRecord = {};
+        uniqueStudents.forEach(s => {
+          if (savedRecords[s.id]) {
+            validRecords[s.id] = savedRecords[s.id];
+          }
+        });
+        setAttendance(validRecords);
         setIsSubmitted(true); // Mark as submitted if records exist
       }
     } catch (err) {
