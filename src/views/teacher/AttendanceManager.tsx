@@ -145,12 +145,21 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
     setSaving(true);
     try {
       const docId = `${userClass}_${userSection}_${today}`;
+      
+      // Only record attendance for students currently in the class list
+      const filteredRecords = students.reduce((acc, s) => {
+        if (attendance[s.id]) {
+          acc[s.id] = attendance[s.id];
+        }
+        return acc;
+      }, {} as AttendanceRecord);
+
       await setDoc(doc(db, 'attendance', docId), {
         class: userClass,
         section: userSection,
         date: today,
         updatedAt: new Date().toISOString(),
-        records: attendance
+        records: filteredRecords
       }, { merge: true });
       setIsSubmitted(true);
       alert("Attendance submitted successfully!");
@@ -269,20 +278,33 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
         </div>
       </div>
 
-      <div className="flex items-center justify-center gap-6 p-6 bg-[#f8f9fa] rounded-2xl border-2 border-dashed border-neutral-200">
-        <div className="text-center">
-          <p className="text-2xl font-black text-emerald-600">{Object.values(attendance).filter(v => v === 'P').length}</p>
-          <p className="text-[10px] font-black text-[#636e72] uppercase tracking-widest">Present</p>
+      <div className="flex flex-col items-center justify-center gap-6 p-8 bg-[#f8f9fa] rounded-[2.5rem] border-2 border-dashed border-neutral-200">
+        <div className="flex items-center gap-8">
+          <div className="text-center group">
+            <p className="text-3xl font-black text-emerald-600 group-hover:scale-110 transition-transform">
+              {students.filter(s => attendance[s.id] === 'P').length}
+            </p>
+            <p className="text-[10px] font-black text-[#636e72] uppercase tracking-[0.2em] mt-1">Present</p>
+          </div>
+          <div className="w-px h-10 bg-neutral-200"></div>
+          <div className="text-center group">
+            <p className="text-3xl font-black text-rose-600 group-hover:scale-110 transition-transform">
+              {students.filter(s => attendance[s.id] === 'A').length}
+            </p>
+            <p className="text-[10px] font-black text-[#636e72] uppercase tracking-[0.2em] mt-1">Absent</p>
+          </div>
+          <div className="w-px h-10 bg-neutral-200"></div>
+          <div className="text-center group">
+            <p className="text-3xl font-black text-amber-600 group-hover:scale-110 transition-transform">
+              {students.filter(s => attendance[s.id] === 'L').length}
+            </p>
+            <p className="text-[10px] font-black text-[#636e72] uppercase tracking-[0.2em] mt-1">Late</p>
+          </div>
         </div>
-        <div className="w-px h-8 bg-neutral-200"></div>
-        <div className="text-center">
-          <p className="text-2xl font-black text-rose-600">{Object.values(attendance).filter(v => v === 'A').length}</p>
-          <p className="text-[10px] font-black text-[#636e72] uppercase tracking-widest">Absent</p>
-        </div>
-        <div className="w-px h-8 bg-neutral-200"></div>
-        <div className="text-center">
-          <p className="text-2xl font-black text-amber-600">{Object.values(attendance).filter(v => v === 'L').length}</p>
-          <p className="text-[10px] font-black text-[#636e72] uppercase tracking-widest">Late</p>
+        <div className="pt-4 border-t border-neutral-200 w-full text-center">
+            <p className="text-[10px] font-bold text-[#57534e] uppercase tracking-widest">
+              Total Marked: {Object.keys(attendance).filter(id => students.some(s => s.id === id)).length} / {students.length} Students
+            </p>
         </div>
       </div>
 
@@ -379,10 +401,11 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
                       className="space-y-6"
                     >
                       {history.map((record) => {
+                        const records = record.records || {};
                         const stats = {
-                          p: Object.values(record.records || {}).filter(v => v === 'P').length,
-                          a: Object.values(record.records || {}).filter(v => v === 'A').length,
-                          l: Object.values(record.records || {}).filter(v => v === 'L').length,
+                          p: Object.values(records).filter(v => v === 'P').length,
+                          a: Object.values(records).filter(v => v === 'A').length,
+                          l: Object.values(records).filter(v => v === 'L').length,
                         };
                         return (
                           <button
