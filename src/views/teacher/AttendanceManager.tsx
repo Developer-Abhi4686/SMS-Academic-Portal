@@ -277,7 +277,7 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
             <ClipboardList className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-[#1a237e] uppercase tracking-tight">Registry</h1>
+            <h1 className="text-2xl font-black text-[#1a237e] uppercase tracking-tight">Registro</h1>
             <p className="text-[#57534e] font-bold text-xs uppercase tracking-widest">
               {getReconstructedDate()} • {userClass}-{userSection}
             </p>
@@ -334,6 +334,7 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
                 </div>
                 <div>
                   <h4 className="font-extrabold text-[#1a1a1a] text-base">{student.fullName}</h4>
+                  <p className="text-[8px] font-black text-[#57534e]/50 uppercase tracking-widest mt-0.5">UID: {student.id.slice(0, 8)}</p>
                 </div>
               </div>
 
