@@ -1,47 +1,148 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    
+    // 1. Global Safety Net (Decline everything by default)
     match /{document=**} {
       allow read, write: if false;
     }
 
-    function isSignedIn() {
-      return request.auth != null;
+    // 2. Global Helper Functions
+    function isValidId(id) { 
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-\\:\\.\\@]+$'); 
+    }
+    
+    function incoming() { 
+      return request.resource.data; 
+    }
+    
+    function existing() { 
+      return resource.data; 
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    // Entity Schema Validation Blueprints
+    function isValidUser(data) {
+      return data.keys().hasAll(['fullName', 'role', 'createdAt'])
+        && data.keys().size() <= 10
+        && data.fullName is string && data.fullName.size() <= 100
+        && data.role is string && (data.role == 'student' || data.role == 'teacher')
+        && data.createdAt is string;
     }
 
+    function isValidMemory(data) {
+      return data.keys().hasAll(['userId', 'type', 'title', 'content', 'createdAt'])
+        && data.keys().size() <= 6
+        && data.userId is string && data.userId.size() <= 100
+        && data.type is string && data.type.size() <= 50
+        && data.title is string && data.title.size() <= 200
+        && data.content is string && data.content.size() <= 100000
+        && data.createdAt is string;
+    }
+
+    function isValidVault(data) {
+      return data.keys().hasAll(['ownerId', 'name', 'roleType', 'subject', 'passwordHash', 'createdAt'])
+        && data.keys().size() <= 7
+        && data.ownerId is string && data.ownerId.size() <= 100
+        && data.name is string && data.name.size() <= 100
+        && data.roleType is string && data.roleType.size() <= 50
+        && data.subject is string && data.subject.size() <= 50
+        && data.passwordHash is string && data.passwordHash.size() <= 256
+        && data.createdAt is string;
+    }
+
+    function isValidVaultFile(data) {
+      return data.keys().hasAll(['name', 'type', 'size', 'uploadDate'])
+        && data.keys().size() <= 6
+        && data.name is string && data.name.size() <= 200
+        && data.type is string && data.type.size() <= 100
+        && data.size is string && data.size.size() <= 50
+        && data.uploadDate is string;
+    }
+
+    function isValidSubmission(data) {
+      return data.keys().hasAll(['studentId', 'studentName', 'admnNo', 'class', 'section', 'type', 'method', 'content', 'status'])
+        && data.keys().size() <= 11
+        && data.studentId is string && data.studentId.size() <= 100
+        && data.studentName is string && data.studentName.size() <= 120
+        && data.admnNo is string && data.admnNo.size() <= 50
+        && data.class is string && data.class.size() <= 20
+        && data.section is string && data.section.size() <= 10
+        && data.type is string && data.type.size() <= 50
+        && data.method is string && data.method.size() <= 20
+        && data.content is string && data.content.size() <= 5000000
+        && data.status is string && (data.status == 'pending' || data.status == 'approved' || data.status == 'rejected');
+    }
+
+    function isValidAttendance(data) {
+      return data.keys().hasAll(['class', 'section', 'date', 'updatedAt', 'records'])
+        && data.keys().size() <= 6
+        && data.class is string && data.class.size() <= 20
+        && data.section is string && data.section.size() <= 10
+        && data.date is string && data.date.size() <= 30
+        && data.updatedAt is string
+        && data.records is map;
+    }
+
+    // 3. Collection Rules and Match Patterns
+
+    // Users Collection
     match /users/{userId} {
-      allow read: if isOwner(userId) || (isSignedIn() && resource.data.role == 'student');
-      allow write: if isOwner(userId);
+      allow get, list: if true;
+      allow create, update: if isValidId(userId) && isValidUser(incoming());
+      allow delete: if false;
     }
 
-    match /students_8A/{id} { allow read: if isSignedIn(); }
-    match /students_8B/{id} { allow read: if isSignedIn(); }
-    match /students_8C/{id} { allow read: if isSignedIn(); }
-    match /students_8D/{id} { allow read: if isSignedIn(); }
-    match /students_8E/{id} { allow read: if isSignedIn(); }
-    match /students_9A/{id} { allow read: if isSignedIn(); }
-    match /students_9B/{id} { allow read: if isSignedIn(); }
-    match /students_9C/{id} { allow read: if isSignedIn(); }
-    match /students_9D/{id} { allow read: if isSignedIn(); }
-    match /students_9E/{id} { allow read: if isSignedIn(); }
-    match /students_10A/{id} { allow read: if isSignedIn(); }
-    match /students_10B/{id} { allow read: if isSignedIn(); }
-    match /students_10C/{id} { allow read: if isSignedIn(); }
-    match /students_10D/{id} { allow read: if isSignedIn(); }
-    match /students_10E/{id} { allow read: if isSignedIn(); }
-
-    match /attendance/{id} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+    // Memories Collection
+    match /memories/{memoryId} {
+      allow get, list: if true;
+      allow create: if isValidId(memoryId) && isValidMemory(incoming());
+      allow update: if isValidId(memoryId) && isValidMemory(incoming()) && incoming().userId == existing().userId;
+      allow delete: if isValidId(memoryId);
     }
 
-    match /memories/{id} {
-      allow read, write: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    // Vaults Collection
+    match /vaults/{vaultId} {
+      allow get, list: if true;
+      allow create: if isValidId(vaultId) && isValidVault(incoming());
+      allow update: if isValidId(vaultId) && isValidVault(incoming()) && incoming().ownerId == existing().ownerId;
+      allow delete: if isValidId(vaultId);
+      
+      // Nested Vault Files
+      match /files/{fileId} {
+        allow get, list: if true;
+        allow create: if isValidId(vaultId) && isValidId(fileId) && isValidVaultFile(incoming());
+        allow update: if isValidId(vaultId) && isValidId(fileId) && isValidVaultFile(incoming());
+        allow delete: if isValidId(vaultId) && isValidId(fileId);
+      }
+    }
+
+    // Submissions Collection
+    match /submissions/{subId} {
+      allow get, list: if true;
+      allow create: if isValidId(subId) && isValidSubmission(incoming());
+      allow update: if isValidId(subId) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['status']) 
+        && incoming().status is string 
+        && (incoming().status == 'pending' || incoming().status == 'approved' || incoming().status == 'rejected')
+      );
+      allow delete: if false;
+    }
+
+    // Attendance Collection
+    match /attendance/{attId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(attId) && isValidAttendance(incoming());
+      allow delete: if false;
+    }
+
+    // Connection Health Check Checkpoint
+    match /system/{sysId} {
+      allow get: if sysId == 'health';
+    }
+
+    // Dynamic Student Lists/Rosters matching students_XX pattern
+    match /{collPath}/{docId} {
+      allow read: if collPath.matches('^students_[a-zA-Z0-9]+$') && isValidId(docId);
     }
   }
 }

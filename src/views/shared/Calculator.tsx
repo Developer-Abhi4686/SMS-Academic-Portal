@@ -121,17 +121,17 @@ export default function Calculator({ onBack }: { onBack?: () => void }) {
             {onBack && (
               <button 
                 onClick={onBack}
-                className="p-4 bg-white border border-[#e7e5e4] text-[#943a1a] rounded-2xl shadow-sm hover:shadow-md transition-all"
+                className="p-4 bg-white border border-[#9E9EB7]/30 text-[#6B6998] rounded-2xl shadow-sm hover:shadow-md transition-all"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
             )}
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Cpu className="w-3 h-3 text-[#943a1a] opacity-40" />
-                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#943a1a]">Precision Hardware</span>
+                <Cpu className="w-3 h-3 text-[#6B6998] opacity-40" />
+                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#6B6998]">Precision Hardware</span>
               </div>
-              <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter">Academic <span className="font-editorial text-[#943a1a]">Calculators</span></h1>
+              <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter">Academic <span className="text-[#6B6998]">Calculators</span></h1>
               <p className="text-[#57534e] text-xs font-medium">Statistical and Scientific computation modules.</p>
             </div>
           </div>
@@ -141,67 +141,66 @@ export default function Calculator({ onBack }: { onBack?: () => void }) {
           <motion.button
             whileHover={{ y: -8, scale: 1.02 }}
             onClick={() => setMode('percentage')}
-            className="bg-white p-12 rounded-[3.5rem] border border-[#e7e5e4] flex flex-col items-center text-center gap-8 shadow-sm hover:border-[#943a1a] hover:shadow-2xl transition-all group"
+            className="bg-white p-12 rounded-[3.5rem] border border-[#9E9EB7]/25 flex flex-col items-center text-center gap-8 shadow-sm hover:border-[#6B6998] hover:shadow-2xl transition-all group"
           >
-            <div className="w-20 h-20 bg-[#f7f5f2] rounded-[2rem] flex items-center justify-center text-[#943a1a] group-hover:bg-[#943a1a] group-hover:text-white transition-all duration-500 shadow-inner">
+            <div className="w-20 h-20 bg-[#F4F4F6] rounded-[2rem] flex items-center justify-center text-[#6B6998] group-hover:bg-[#6B6998] group-hover:text-white transition-all duration-500 shadow-inner">
               <Percent className="w-8 h-8" />
             </div>
             <div>
               <h2 className="text-2xl font-black uppercase tracking-tighter mb-3">Academic Yield</h2>
-              <p className="text-[#57534e] text-[10px] font-black uppercase tracking-widest opacity-60 leading-relaxed">Percentage & Grade Analysis Module</p>
+              <p className="text-[#1A1A1A]/70 text-[10px] font-black uppercase tracking-widest opacity-60 leading-relaxed">Percentage & Grade Analysis Module</p>
             </div>
           </motion.button>
 
           <motion.button
             whileHover={{ y: -8, scale: 1.02 }}
             onClick={() => setMode('standard')}
-            className="bg-[#1c1917] p-12 rounded-[3.5rem] border border-[#1c1917] flex flex-col items-center text-center gap-8 shadow-2xl hover:shadow-[#943a1a]/20 transition-all group overflow-hidden relative"
+            className="bg-[#1A1A1A] p-12 rounded-[3.5rem] border border-[#1A1A1A] flex flex-col items-center text-center gap-8 shadow-2xl hover:shadow-[#6B6998]/20 transition-all group overflow-hidden relative"
           >
-            <div className="w-20 h-20 bg-white/10 rounded-[2rem] flex items-center justify-center text-white group-hover:text-[#f59e0b] backdrop-blur-xl transition-all duration-500 border border-white/10 relative z-10">
+            <div className="w-20 h-20 bg-white/10 rounded-[2rem] flex items-center justify-center text-white group-hover:text-[#9E9EB7] backdrop-blur-xl transition-all duration-500 border border-white/10 relative z-10">
               <CalcIcon className="w-8 h-8" />
             </div>
             <div className="relative z-10">
               <h2 className="text-2xl font-black uppercase tracking-tighter text-white mb-3">Scientific Node</h2>
               <p className="text-white/40 text-[10px] font-black uppercase tracking-widest leading-relaxed">Advanced Arithmetic & Trigonometric Layer</p>
             </div>
-            <div className="absolute bottom-[-10%] right-[-10%] w-48 h-48 bg-[#943a1a]/10 rounded-full blur-[60px]" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-48 h-48 bg-[#6B6998]/15 rounded-full blur-[60px]" />
           </motion.button>
         </div>
       </div>
     );
   }
-
   if (mode === 'percentage') {
     return (
       <div className="max-w-3xl mx-auto space-y-12">
-        <header className="flex items-center justify-between bg-white p-6 md:p-8 rounded-[3rem] border border-[#e7e5e4] shadow-sm">
+        <header className="flex items-center justify-between bg-white p-6 md:p-8 rounded-[3rem] border border-[#9E9EB7]/25 shadow-sm">
           <div className="flex items-center gap-6">
             <button 
               onClick={() => { setMode('selection'); resetPercentage(); }}
-              className="p-3 bg-[#f7f5f2] rounded-2xl text-[#943a1a] hover:bg-white border border-transparent hover:border-[#e7e5e4] transition-all"
+              className="p-3 bg-[#F4F4F6] rounded-2xl text-[#6B6998] hover:bg-white border border-transparent hover:border-[#9E9EB7]/30 transition-all"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
             <div>
               <h1 className="text-2xl font-black uppercase tracking-tighter">Academic Yield</h1>
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#57534e] opacity-40">Grade Calculator</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[#1A1A1A] opacity-40">Grade Calculator</p>
             </div>
           </div>
           <button 
             onClick={resetPercentage}
-            className="w-12 h-12 flex items-center justify-center text-[#57534e] hover:text-[#943a1a] transition-colors"
+            className="w-12 h-12 flex items-center justify-center text-[#9E9EB7] hover:text-[#6B6998] transition-colors"
           >
             <RotateCcw className="w-6 h-6" />
           </button>
         </header>
 
-        <div className="bg-white rounded-[4rem] border border-[#e7e5e4] p-10 md:p-16 shadow-inner relative overflow-hidden">
+        <div className="bg-white rounded-[4rem] border border-[#9E9EB7]/25 p-10 md:p-16 shadow-inner relative overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
             <div className="space-y-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
               {marks.map((m, idx) => (
                 <div key={m.id} className="flex items-center gap-4 group">
-                  <span className="text-[9px] font-black text-[#57534e] opacity-20 w-4 tracking-tighter">{idx + 1}</span>
-                  <div className="flex-1 grid grid-cols-7 gap-2 bg-[#f7f5f2] rounded-2xl p-2 border border-transparent group-hover:border-[#943a1a]/20 transition-all">
+                  <span className="text-[9px] font-black text-[#9E9EB7] opacity-60 w-4 tracking-tighter">{idx + 1}</span>
+                  <div className="flex-1 grid grid-cols-7 gap-2 bg-[#F4F4F6] rounded-2xl p-2 border border-transparent group-hover:border-[#6B6998]/20 transition-all">
                     <input
                       type="number"
                       placeholder="Score"
@@ -224,26 +223,26 @@ export default function Calculator({ onBack }: { onBack?: () => void }) {
 
             <div className="flex flex-col justify-center items-center gap-10">
               <div className="text-center">
-                 <div className="w-32 h-32 rounded-full border-4 border-[#943a1a]/5 flex items-center justify-center mb-6 mx-auto relative group">
-                    <Percent className="w-10 h-10 text-[#943a1a] opacity-20 group-hover:opacity-100 transition-opacity" />
-                    <div className="absolute inset-0 border-4 border-[#943a1a] border-t-transparent rounded-full animate-spin-slow opacity-10" />
+                 <div className="w-32 h-32 rounded-full border-4 border-[#6B6998]/5 flex items-center justify-center mb-6 mx-auto relative group">
+                    <Percent className="w-10 h-10 text-[#6B6998] opacity-20 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 border-4 border-[#6B6998] border-t-transparent rounded-full animate-spin-slow opacity-10" />
                  </div>
-                 <h2 className="text-6xl font-black uppercase tracking-tighter text-[#1c1917] mb-2">
+                 <h2 className="text-6xl font-black uppercase tracking-tighter text-[#1A1A1A] mb-2">
                     {resultPercentage !== null ? `${resultPercentage.toFixed(1)}%` : '--.—%'}
                  </h2>
-                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#943a1a]">Calculated Efficiency</p>
+                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#6B6998]">Calculated Efficiency</p>
               </div>
 
               <button 
                 onClick={calculatePercentage}
-                className="w-full bg-[#943a1a] text-white py-6 rounded-3xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-[#943a1a]/30 hover:bg-[#c2410c] transition-all"
+                className="w-full bg-[#6B6998] text-white py-6 rounded-3xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-[#6B6998]/30 hover:bg-[#585582] transition-all"
               >
                 Execute Analysis
               </button>
             </div>
           </div>
           
-          <div className="absolute top-0 right-0 w-64 h-64 bg-[#f59e0b]/5 rounded-full blur-[80px]" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[#6B6998]/5 rounded-full blur-[80px]" />
         </div>
       </div>
     );
@@ -261,22 +260,22 @@ export default function Calculator({ onBack }: { onBack?: () => void }) {
 
   return (
     <div className="max-w-md mx-auto h-full flex flex-col justify-center">
-       <div className="bg-[#1c1917] p-8 md:p-12 rounded-[4rem] border-8 border-[#2d2a27] shadow-[0_40px_100px_rgba(0,0,0,0.4)] relative">
+       <div className="bg-[#1A1A1A] p-8 md:p-12 rounded-[4rem] border-8 border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.5)] relative">
           
           {/* Status Bar */}
           <div className="flex justify-between items-center mb-8 px-4 opacity-50">
             <div className="flex items-center gap-3">
-              <div className="w-2 h-2 rounded-full bg-[#f59e0b] shadow-[0_0_10px_#f59e0b]" />
+              <div className="w-2 h-2 rounded-full bg-[#6B6998] shadow-[0_0_10px_rgba(107,105,152,0.8)]" />
               <span className="text-[8px] font-mono uppercase tracking-widest text-[#fdfcfb]">Core_X1</span>
             </div>
             <span className="text-[8px] font-mono text-white opacity-40 uppercase tracking-widest">Scientific Mode v2.5</span>
           </div>
 
           {/* Liquid Crystal Display */}
-          <div className="bg-[#0c0a09] p-8 rounded-[2rem] border border-white/5 mb-10 text-right flex flex-col justify-end min-h-[160px] relative overflow-hidden shadow-inner font-mono">
+          <div className="bg-black/45 p-8 rounded-[2rem] border border-white/5 mb-10 text-right flex flex-col justify-end min-h-[160px] relative overflow-hidden shadow-inner font-mono">
              <div className="absolute top-4 left-6 opacity-10 text-white text-[10px] uppercase tracking-widest">Analytical Buffer</div>
              <p className="text-white/30 text-xs mb-4 uppercase tracking-tighter truncate">{equation}</p>
-             <div className="text-5xl font-light text-[#f59e0b] tracking-tighter overflow-hidden text-ellipsis whitespace-nowrap">
+             <div className="text-5xl font-light text-white tracking-tighter overflow-hidden text-ellipsis whitespace-nowrap">
                 {display}
              </div>
              <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-black/20 pointer-events-none" />
@@ -296,12 +295,12 @@ export default function Calculator({ onBack }: { onBack?: () => void }) {
                   else handleCalcPress(btn.val);
                 }}
                 className={`h-16 rounded-[1.25rem] flex items-center justify-center font-bold text-xs uppercase transition-all ${
-                  btn.type === 'num' ? 'bg-[#292524] text-white hover:bg-[#44403c] border border-white/5' :
-                  btn.type === 'sci' ? 'bg-[#1c1917] text-[#f59e0b]/60 hover:text-[#f59e0b] border border-white/5' :
-                  btn.type === 'op' ? 'bg-[#943a1a] text-white hover:bg-[#c2410c] shadow-lg shadow-[#943a1a]/20' :
-                  btn.type === 'clr' ? 'bg-red-950 text-red-400 border border-red-500/10' :
-                  btn.type === 'eq' ? 'bg-[#f59e0b] text-[#1c1917] shadow-[0_0_20px_rgba(245,158,11,0.3)]' :
-                  'bg-[#292524] text-white'
+                  btn.type === 'num' ? 'bg-white/5 text-white hover:bg-white/10 border border-white/5' :
+                  btn.type === 'sci' ? 'bg-[#1A1A1A] text-[#9E9EB7] hover:text-white border border-white/5' :
+                  btn.type === 'op' ? 'bg-[#6B6998] text-white hover:bg-[#585582] shadow-lg shadow-[#6B6998]/20' :
+                  btn.type === 'clr' ? 'bg-white/10 text-white border border-white/10' :
+                  btn.type === 'eq' ? 'bg-white text-[#1A1A1A] shadow-[0_0_20px_rgba(255,255,255,0.25)]' :
+                  'bg-white/5 text-white'
                 }`}
               >
                 {btn.label}

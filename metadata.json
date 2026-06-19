@@ -1,6 +1,6 @@
 {
-  "name": "SMS Academīc Portal",
+  "name": "SM'S Academic Portal",
   "description": "An AI-powered academic portal for teachers and students of St Michael's School, Bhind, featuring lesson planning, quiz generation, and doubt solving.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

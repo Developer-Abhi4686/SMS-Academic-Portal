@@ -19,12 +19,10 @@ export function useSessionState<T>(key: string, initialState: T): [T, React.Disp
 }
 
 export function clearSessionStates() {
-  const keysToRemove = [];
-  for (let i = 0; i < sessionStorage.length; i++) {
-    const key = sessionStorage.key(i);
-    if (key && key.startsWith('sms_session_')) {
-      keysToRemove.push(key);
-    }
-  }
-  keysToRemove.forEach(key => sessionStorage.removeItem(key));
+  // Clear all session storage to ensure no data leaks between users
+  sessionStorage.clear();
+  
+  // Clear specific local storage keys
+  const localKeys = ['sms_role', 'sms_userClass', 'sms_userSection'];
+  localKeys.forEach(key => localStorage.removeItem(key));
 }

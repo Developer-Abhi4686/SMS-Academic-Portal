@@ -16,8 +16,7 @@ import {
   Filter,
   ArrowRight
 } from 'lucide-react';
-import { collection, query, where, getDocs, orderBy, updateDoc, doc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { supabaseStorage } from '../../lib/supabaseStorage';
 
 interface Submission {
   id: string;
@@ -49,18 +48,12 @@ export default function Submissions({ onBack, userClass, userSection }: Submissi
   const fetchSubmissions = async () => {
     setLoading(true);
     try {
-      const q = query(
-        collection(db, 'submissions'),
-        where('class', '==', userClass),
-        where('section', '==', userSection)
-      );
-      const querySnapshot = await getDocs(q);
-      const docs = querySnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Submission));
+      const docs = await supabaseStorage.getSubmissions(userClass || '', userSection || '');
       
       // Sort in memory to avoid index requirements
       docs.sort((a, b) => {
-        const dateA = a.createdAt?.toDate?.() || new Date(0);
-        const dateB = b.createdAt?.toDate?.() || new Date(0);
+        const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
+        const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
         return dateB.getTime() - dateA.getTime();
       });
 
@@ -80,7 +73,7 @@ export default function Submissions({ onBack, userClass, userSection }: Submissi
 
   const updateStatus = async (id: string, status: 'approved' | 'rejected') => {
     try {
-      await updateDoc(doc(db, 'submissions', id), { status });
+      await supabaseStorage.updateSubmissionStatus(id, status);
       setSubmissions(prev => prev.map(s => s.id === id ? { ...s, status } : s));
       if (selectedSub?.id === id) {
         setSelectedSub({ ...selectedSub, status });
@@ -109,8 +102,8 @@ export default function Submissions({ onBack, userClass, userSection }: Submissi
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <div className="w-12 h-12 border-4 border-[#1a237e] border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-[#1a237e] font-black text-xs uppercase tracking-widest">Scanning Repository...</p>
+        <div className="w-12 h-12 border-4 border-[#0066CC] border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-[#0066CC] font-black text-xs uppercase tracking-widest">Scanning Repository...</p>
       </div>
     );
   }
@@ -120,15 +113,15 @@ export default function Submissions({ onBack, userClass, userSection }: Submissi
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-6">
           {onBack && (
-            <button onClick={onBack} className="p-4 bg-white border border-[#e7e5e4] text-[#1a237e] rounded-2xl shadow-sm">
+            <button onClick={onBack} className="p-4 bg-white border border-[#e7e5e4] text-[#0066CC] rounded-2xl shadow-sm">
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#1a237e]">Student Record Management</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#0066CC]">Student Record Management</span>
             </div>
-            <h1 className="text-4xl font-black uppercase tracking-tighter">Documentation <span className="font-editorial text-[#1a237e]">Folders</span></h1>
+            <h1 className="text-4xl font-black uppercase tracking-tighter">Documentation <span className="font-editorial text-[#0066CC]">Folders</span></h1>
             <p className="text-[#57534e] text-xs font-medium">Registry for Class {userClass}-{userSection}</p>
           </div>
         </div>
@@ -153,10 +146,10 @@ export default function Submissions({ onBack, userClass, userSection }: Submissi
                     <button
                       key={normalizedAdmn}
                       onClick={() => setSelectedStudentAdmn(normalizedAdmn)}
-                      className="w-full text-left bg-white p-8 rounded-[3rem] border border-[#e7e5e4] transition-all flex flex-col justify-between group hover:border-[#1a237e] hover:shadow-2xl hover:translate-y-[-4px]"
+                      className="w-full text-left bg-white p-8 rounded-[3rem] border border-[#e7e5e4] transition-all flex flex-col justify-between group hover:border-[#0066CC] hover:shadow-2xl hover:translate-y-[-4px]"
                     >
                       <div className="flex justify-between items-start mb-6">
-                        <div className="w-16 h-16 rounded-[1.5rem] bg-blue-50 flex items-center justify-center text-[#1a237e] group-hover:bg-[#1a237e] group-hover:text-white transition-colors">
+                        <div className="w-16 h-16 rounded-[1.5rem] bg-black/5 flex items-center justify-center text-[#0066CC] group-hover:bg-[#0066CC] group-hover:text-white transition-colors">
                           <FolderOpen className="w-8 h-8" />
                         </div>
                         {pendingCount > 0 && (
@@ -166,7 +159,7 @@ export default function Submissions({ onBack, userClass, userSection }: Submissi
                         )}
                       </div>
                       <div>
-                        <h3 className="text-xl font-black text-[#1c1917] uppercase tracking-tighter leading-tight group-hover:text-[#1a237e] transition-colors">
+                        <h3 className="text-xl font-black text-[#1c1917] uppercase tracking-tighter leading-tight group-hover:text-[#0066CC] transition-colors">
                           {student.studentName}
                         </h3>
                         <p className="text-[9px] font-black text-[#57534e] uppercase tracking-[0.2em] mt-2 opacity-50">
@@ -188,7 +181,7 @@ export default function Submissions({ onBack, userClass, userSection }: Submissi
                 <div className="flex items-center justify-between mb-8">
                   <button 
                     onClick={() => setSelectedStudentAdmn(null)}
-                    className="flex items-center gap-3 text-[#1a237e] font-black text-[10px] uppercase tracking-widest hover:translate-x-[-4px] transition-transform bg-white px-5 py-3 rounded-full border border-[#e7e5e4] shadow-sm"
+                    className="flex items-center gap-3 text-[#0066CC] font-black text-[10px] uppercase tracking-widest hover:translate-x-[-4px] transition-transform bg-white px-5 py-3 rounded-full border border-[#e7e5e4] shadow-sm"
                   >
                     <ArrowLeft className="w-3 h-3" />
                     Close Student Folder
@@ -196,7 +189,7 @@ export default function Submissions({ onBack, userClass, userSection }: Submissi
                   <p className="text-[10px] font-black font-mono text-[#57534e] uppercase tracking-widest opacity-40">Classified Documents Only</p>
                 </div>
 
-                <div className="bg-[#1a237e] rounded-[3rem] p-10 text-white shadow-xl relative overflow-hidden mb-8">
+                <div className="bg-[#0066CC] rounded-[3rem] p-10 text-white shadow-xl relative overflow-hidden mb-8">
                   <div className="absolute top-[-20px] right-[-20px] opacity-10">
                     <FolderOpen className="w-48 h-48" />
                   </div>
@@ -215,20 +208,20 @@ export default function Submissions({ onBack, userClass, userSection }: Submissi
                     <button
                       key={sub.id}
                       onClick={() => setSelectedSub(sub)}
-                      className="w-full text-left bg-white p-6 rounded-[2.5rem] border border-[#e7e5e4] transition-all flex items-center justify-between group hover:border-[#1a237e] hover:shadow-lg"
+                      className="w-full text-left bg-white p-6 rounded-[2.5rem] border border-[#e7e5e4] transition-all flex items-center justify-between group hover:border-[#0066CC] hover:shadow-lg"
                     >
                       <div className="flex items-center gap-6">
                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-sm ${
-                          sub.status === 'approved' ? 'bg-emerald-500' : sub.status === 'rejected' ? 'bg-red-500' : 'bg-[#1a237e]'
+                          sub.status === 'approved' ? 'bg-emerald-500' : sub.status === 'rejected' ? 'bg-red-500' : 'bg-[#0066CC]'
                         }`}>
                           <FileText className="w-5 h-5" />
                         </div>
                         <div>
-                          <h3 className="text-base font-black text-[#1a237e] uppercase tracking-tighter">{sub.type}</h3>
+                          <h3 className="text-base font-black text-[#0066CC] uppercase tracking-tighter">{sub.type}</h3>
                           <div className="flex items-center gap-3 mt-1">
                             <span className="text-[9px] font-bold text-[#57534e] uppercase tracking-widest">{sub.createdAt?.toDate().toLocaleDateString()}</span>
                             <span className="w-1 h-1 bg-neutral-200 rounded-full" />
-                            <span className="text-[9px] font-black text-[#1a237e] uppercase tracking-widest">{sub.method}</span>
+                            <span className="text-[9px] font-black text-[#0066CC] uppercase tracking-widest">{sub.method}</span>
                           </div>
                         </div>
                       </div>
@@ -236,11 +229,11 @@ export default function Submissions({ onBack, userClass, userSection }: Submissi
                         <div className={`px-4 py-2 rounded-full text-[8px] font-black uppercase tracking-widest border transition-colors ${
                           sub.status === 'approved' ? 'border-emerald-500 text-emerald-600 bg-emerald-50' : 
                           sub.status === 'rejected' ? 'border-red-500 text-red-600 bg-red-50' : 
-                          'border-[#1a237e]/20 text-[#1a237e] bg-[#f8f9fa]'
+                          'border-[#0066CC]/20 text-[#0066CC] bg-[#f8f9fa]'
                         }`}>
                           {sub.status}
                         </div>
-                        <ArrowRight className="w-4 h-4 text-[#1a237e] opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
+                        <ArrowRight className="w-4 h-4 text-[#0066CC] opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
                       </div>
                     </button>
                   ))}
@@ -260,14 +253,14 @@ export default function Submissions({ onBack, userClass, userSection }: Submissi
         {/* Status / Detail Card Preview */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-[3rem] border border-[#e7e5e4] p-8 shadow-sm h-fit sticky top-8">
-            <h2 className="text-xl font-black text-[#1a237e] uppercase tracking-tighter mb-8 border-b border-neutral-100 pb-4">Activity Summary</h2>
+            <h2 className="text-xl font-black text-[#0066CC] uppercase tracking-tighter mb-8 border-b border-neutral-100 pb-4">Activity Summary</h2>
             <div className="space-y-6">
-              <div className="flex justify-between items-center bg-blue-50 p-6 rounded-[2rem]">
+              <div className="flex justify-between items-center bg-black/5 p-6 rounded-[2rem]">
                 <div>
-                  <p className="text-2xl font-black text-[#1a237e]">{submissions.filter(s => s.status === 'pending').length}</p>
+                  <p className="text-2xl font-black text-[#0066CC]">{submissions.filter(s => s.status === 'pending').length}</p>
                   <p className="text-[10px] font-black text-[#57534e] uppercase tracking-widest mt-1">Pending Docs</p>
                 </div>
-                <Clock className="w-8 h-8 text-[#1a237e] opacity-30" />
+                <Clock className="w-8 h-8 text-[#0066CC] opacity-30" />
               </div>
               
               <div className="flex justify-between items-center bg-emerald-50 p-6 rounded-[2rem]">
@@ -296,13 +289,13 @@ export default function Submissions({ onBack, userClass, userSection }: Submissi
               animate={{ scale: 1, y: 0 }}
               className="bg-white rounded-[3rem] w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl relative"
             >
-              <button onClick={() => setSelectedSub(null)} className="absolute top-8 right-8 text-[#57534e] hover:text-[#1a237e] p-2 z-10">
+              <button onClick={() => setSelectedSub(null)} className="absolute top-8 right-8 text-[#57534e] hover:text-[#0066CC] p-2 z-10">
                 <X className="w-6 h-6" />
               </button>
 
               <div className="p-10 border-b border-[#e7e5e4] flex flex-col md:flex-row justify-between gap-6">
                 <div>
-                  <h3 className="text-3xl font-black uppercase tracking-tighter text-[#1a237e]">{selectedSub.type}</h3>
+                  <h3 className="text-3xl font-black uppercase tracking-tighter text-[#0066CC]">{selectedSub.type}</h3>
                   <div className="flex items-center gap-4 mt-2">
                     <div className="flex items-center gap-2 text-xs font-bold text-[#57534e]">
                       <User className="w-4 h-4" />

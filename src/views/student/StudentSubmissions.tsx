@@ -12,8 +12,8 @@ import {
   X,
   FileDown
 } from 'lucide-react';
-import { doc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db, auth } from '../../lib/firebase';
+import { auth } from '../../lib/firebase';
+import { supabaseStorage } from '../../lib/supabaseStorage';
 
 interface StudentSubmissionsProps {
   onBack?: () => void;
@@ -74,7 +74,7 @@ export default function StudentSubmissions({ onBack, userClass, userSection }: S
       const normalizedName = formData.name.trim();
       const normalizedAdmn = formData.admnNo.trim();
       
-      await addDoc(collection(db, 'submissions'), {
+      await supabaseStorage.addSubmission({
         studentId: studentId,
         studentName: normalizedName,
         admnNo: normalizedAdmn,
@@ -84,8 +84,7 @@ export default function StudentSubmissions({ onBack, userClass, userSection }: S
         method: submissionMethod,
         content: submissionMethod === 'text' ? textValue : fileBase64,
         fileName: fileName,
-        status: 'pending',
-        createdAt: serverTimestamp()
+        status: 'pending'
       });
       setStep('success');
     } catch (error) {
@@ -109,12 +108,12 @@ export default function StudentSubmissions({ onBack, userClass, userSection }: S
           >
             <div className="flex items-center gap-4 mb-4">
               {onBack && (
-                <button onClick={onBack} className="p-3 bg-neutral-50 rounded-xl text-[#1a237e]">
+                <button onClick={onBack} className="p-3 bg-neutral-50 rounded-xl text-[#0066CC]">
                   <ArrowLeft className="w-5 h-5" />
                 </button>
               )}
               <div>
-                <h2 className="text-2xl font-black text-[#1a237e] uppercase tracking-tighter">Submission Form</h2>
+                <h2 className="text-2xl font-black text-[#0066CC] uppercase tracking-tighter">Submission Form</h2>
                 <p className="text-[10px] font-black text-[#57534e] uppercase tracking-widest mt-1">Identity Verification Required</p>
               </div>
             </div>
@@ -126,7 +125,7 @@ export default function StudentSubmissions({ onBack, userClass, userSection }: S
                   required
                   value={formData.name}
                   onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="w-full bg-[#f8f9fa] p-5 rounded-2xl border border-transparent focus:border-[#1a237e] outline-none font-bold"
+                  className="w-full bg-[#f8f9fa] p-5 rounded-2xl border border-transparent focus:border-[#0066CC] outline-none font-bold"
                   placeholder="Enter your name"
                 />
               </div>
@@ -137,8 +136,8 @@ export default function StudentSubmissions({ onBack, userClass, userSection }: S
                   required
                   value={formData.admnNo}
                   onChange={e => setFormData({...formData, admnNo: e.target.value})}
-                  className="w-full bg-[#f8f9fa] p-5 rounded-2xl border border-transparent focus:border-[#1a237e] outline-none font-bold"
-                  placeholder="e.g. 5421"
+                  className="w-full bg-[#f8f9fa] p-5 rounded-2xl border border-transparent focus:border-[#0066CC] outline-none font-bold"
+                  placeholder=""
                 />
               </div>
 
@@ -149,8 +148,8 @@ export default function StudentSubmissions({ onBack, userClass, userSection }: S
                     required
                     value={formData.filledClass}
                     onChange={e => setFormData({...formData, filledClass: e.target.value})}
-                    className="w-full bg-[#f8f9fa] p-5 rounded-2xl border border-transparent focus:border-[#1a237e] outline-none font-bold"
-                    placeholder="e.g. IX"
+                    className="w-full bg-[#f8f9fa] p-5 rounded-2xl border border-transparent focus:border-[#0066CC] outline-none font-bold"
+                    placeholder=""
                   />
                 </div>
                 <div className="space-y-2">
@@ -159,15 +158,15 @@ export default function StudentSubmissions({ onBack, userClass, userSection }: S
                     required
                     value={formData.filledSection}
                     onChange={e => setFormData({...formData, filledSection: e.target.value})}
-                    className="w-full bg-[#f8f9fa] p-5 rounded-2xl border border-transparent focus:border-[#1a237e] outline-none font-bold"
-                    placeholder="e.g. D"
+                    className="w-full bg-[#f8f9fa] p-5 rounded-2xl border border-transparent focus:border-[#0066CC] outline-none font-bold"
+                    placeholder=""
                   />
                 </div>
               </div>
 
               <button 
                 type="submit"
-                className="w-full bg-[#1a237e] text-white py-6 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg hover:bg-[#283593] transition-all"
+                className="w-full bg-[#0066CC] text-white py-6 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg hover:bg-[#0055B3] transition-all"
               >
                 Next Step
               </button>
@@ -183,18 +182,18 @@ export default function StudentSubmissions({ onBack, userClass, userSection }: S
             exit={{ opacity: 0, x: -20 }}
             className="space-y-8"
           >
-            <button onClick={() => setStep('form')} className="flex items-center gap-2 text-[#1a237e] font-black text-[10px] uppercase tracking-widest">
+            <button onClick={() => setStep('form')} className="flex items-center gap-2 text-[#0066CC] font-black text-[10px] uppercase tracking-widest">
               <ArrowLeft className="w-4 h-4" /> Go back
             </button>
-            <h2 className="text-3xl font-black text-[#1a237e] uppercase tracking-tighter">Choose Document Type</h2>
+            <h2 className="text-3xl font-black text-[#0066CC] uppercase tracking-tighter">Choose Document Type</h2>
             <div className="grid grid-cols-1 gap-4">
               {['Leave Application', 'Letter', 'Other'].map(type => (
                 <button
                   key={type}
                   onClick={() => { setPermType(type as any); setStep('content'); }}
-                  className="p-8 bg-white rounded-3xl border border-[#e7e5e4] hover:border-[#1a237e] transition-all flex items-center justify-between group"
+                  className="p-8 bg-white rounded-3xl border border-[#e7e5e4] hover:border-[#0066CC] transition-all flex items-center justify-between group"
                 >
-                  <span className="text-xl font-black text-[#1c1917] group-hover:text-[#1a237e]">{type}</span>
+                  <span className="text-xl font-black text-[#1c1917] group-hover:text-[#0066CC]">{type}</span>
                   <FileText className="w-6 h-6 text-[#57534e] opacity-20 group-hover:opacity-100" />
                 </button>
               ))}
@@ -214,7 +213,7 @@ export default function StudentSubmissions({ onBack, userClass, userSection }: S
                  <ArrowLeft className="w-4 h-4" />
                </button>
                <div className="text-right">
-                 <h2 className="text-2xl font-black text-[#1a237e] uppercase tracking-tighter">{permType}</h2>
+                 <h2 className="text-2xl font-black text-[#0066CC] uppercase tracking-tighter">{permType}</h2>
                  <p className="text-[10px] font-black text-[#57534e] uppercase tracking-widest">Select Submission Method</p>
                </div>
             </header>
@@ -229,7 +228,7 @@ export default function StudentSubmissions({ onBack, userClass, userSection }: S
                   key={m.id}
                   onClick={() => setSubmissionMethod(m.id as any)}
                   className={`flex-1 flex flex-col items-center gap-2 py-4 rounded-xl transition-all ${
-                    submissionMethod === m.id ? 'bg-[#1a237e] text-white shadow-lg' : 'text-[#57534e] hover:bg-white'
+                    submissionMethod === m.id ? 'bg-[#0066CC] text-white shadow-lg' : 'text-[#57534e] hover:bg-white'
                   }`}
                 >
                   <m.icon className="w-5 h-5" />
@@ -245,14 +244,14 @@ export default function StudentSubmissions({ onBack, userClass, userSection }: S
                   value={textValue}
                   onChange={e => setTextValue(e.target.value)}
                   placeholder="Type your content here..."
-                  className="w-full bg-[#f8f9fa] p-6 rounded-3xl border-2 border-transparent focus:border-[#1a237e] outline-none min-h-[200px] font-medium"
+                  className="w-full bg-[#f8f9fa] p-6 rounded-3xl border-2 border-transparent focus:border-[#0066CC] outline-none min-h-[200px] font-medium"
                 />
               )}
 
               {(submissionMethod === 'file' || submissionMethod === 'photo') && (
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-[200px] bg-[#f8f9fa] border-2 border-dashed border-[#e7e5e4] rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-[#1a237e] transition-all"
+                  className="w-full h-[200px] bg-[#f8f9fa] border-2 border-dashed border-[#e7e5e4] rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-[#0066CC] transition-all"
                 >
                   <input 
                     type="file" 
@@ -264,11 +263,11 @@ export default function StudentSubmissions({ onBack, userClass, userSection }: S
                   {fileName ? (
                     <>
                       <FileDown className="w-10 h-10 text-emerald-500" />
-                      <p className="font-black text-xs text-[#1a237e] px-4 truncate max-w-full">{fileName}</p>
+                      <p className="font-black text-xs text-[#0066CC] px-4 truncate max-w-full">{fileName}</p>
                     </>
                   ) : (
                     <>
-                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-[#1a237e] shadow-sm">
+                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-[#0066CC] shadow-sm">
                         <Upload className="w-6 h-6" />
                       </div>
                       <p className="text-[10px] font-black uppercase tracking-widest text-[#57534e]">
@@ -283,7 +282,7 @@ export default function StudentSubmissions({ onBack, userClass, userSection }: S
             <button
               onClick={finalSubmit}
               disabled={loading || (submissionMethod === 'text' ? !textValue.trim() : !fileBase64)}
-              className="w-full bg-[#1a237e] text-white py-6 rounded-3xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl hover:bg-[#283593] disabled:opacity-50"
+              className="w-full bg-[#0066CC] text-white py-6 rounded-3xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl hover:bg-[#0055B3] disabled:opacity-50"
             >
               {loading ? <Upload className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               {loading ? 'Submitting...' : 'Send Submission'}
@@ -301,13 +300,13 @@ export default function StudentSubmissions({ onBack, userClass, userSection }: S
             <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-8">
               <CheckCircle2 className="w-10 h-10" />
             </div>
-            <h2 className="text-4xl font-black text-[#1a237e] uppercase tracking-tighter mb-4 italic">Success!</h2>
+            <h2 className="text-4xl font-black text-[#0066CC] uppercase tracking-tighter mb-4 italic">Success!</h2>
             <p className="text-[#57534e] font-medium max-w-sm mx-auto mb-10">
               Your documentation has been synced with the teacher's dashboard. Please wait for official review.
             </p>
             <button
               onClick={onBack}
-              className="px-10 py-5 bg-[#1a237e] text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg"
+              className="px-10 py-5 bg-[#0066CC] text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg"
             >
               Back to Dashboard
             </button>
@@ -331,13 +330,13 @@ export default function StudentSubmissions({ onBack, userClass, userSection }: S
               <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto">
                 <AlertCircle className="w-8 h-8" />
               </div>
-              <h3 className="text-xl font-black text-[#1a237e] uppercase tracking-tighter">Class Mismatch</h3>
+              <h3 className="text-xl font-black text-[#0066CC] uppercase tracking-tighter">Class Mismatch</h3>
               <p className="text-sm font-medium text-[#57534e] leading-relaxed">
                 The Class and Section you entered do not match your current session. Please select the right class.
               </p>
               <button
                 onClick={() => setShowError(false)}
-                className="w-full bg-[#1a237e] text-white py-4 rounded-xl font-black uppercase tracking-widest text-[10px]"
+                className="w-full bg-[#0066CC] text-white py-4 rounded-xl font-black uppercase tracking-widest text-[10px]"
               >
                 Correct Details
               </button>

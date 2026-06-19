@@ -10,6 +10,7 @@ export default function DoubtSolver({ userClass, onBack }: { userClass: string |
   
   // Engine State
   const [subject, setSubject] = useSessionState('doubtsolver_subject', '');
+  const [mathPart, setMathPart] = useSessionState<'Part I' | 'Part II'>('doubtsolver_math_part', 'Part I');
   const [chapter, setChapter] = useSessionState('doubtsolver_chapter', '');
   const [chapterName, setChapterName] = useSessionState('doubtsolver_chaptername', '');
   
@@ -22,8 +23,9 @@ export default function DoubtSolver({ userClass, onBack }: { userClass: string |
   const handleEngineSubmit = async () => {
     if (!subject || !chapterName) return;
     setLoading(true);
-    const prompt = `Subject: ${subject}\nChapter: ${chapter}\nChapter Name: ${chapterName}\nPlease provide the most probable conceptual doubt a student might have in this chapter and solve it in the simplest possible language.`;
-    const res = await getGeminiResponse(prompt, prompts.doubtSolver, userClass, "gemini-2.5-flash-lite");
+    const isMath = subject.toLowerCase().includes('math') || subject.toLowerCase().includes('ganita');
+    const prompt = `Subject: ${subject}${isMath ? ` (${mathPart})` : ''}\nChapter: ${chapter}\nChapter Name: ${chapterName}\nPlease provide the most probable conceptual doubt a student might have in this chapter and solve it in the simplest possible language.${isMath ? `\nNote: Use the syllabus defined for Class ${userClass} Math ${mathPart}.` : ''}`;
+    const res = await getGeminiResponse(prompt, prompts.doubtSolver, userClass);
     setResponse(res);
     setLoading(false);
   };
@@ -31,7 +33,7 @@ export default function DoubtSolver({ userClass, onBack }: { userClass: string |
   const handleAssistantSubmit = async () => {
     if (!doubtText) return;
     setLoading(true);
-    const res = await getGeminiResponse(doubtText, prompts.doubtSolver, userClass, "gemini-3.1-flash-lite-preview");
+    const res = await getGeminiResponse(doubtText, prompts.doubtSolver, userClass);
     setResponse(res);
     setLoading(false);
   };
@@ -44,21 +46,21 @@ export default function DoubtSolver({ userClass, onBack }: { userClass: string |
           {onBack && (
             <button 
               onClick={onBack}
-              className="p-4 bg-white border border-[#e7e5e4] text-[#1a237e] rounded-[1.5rem] shadow-sm hover:shadow-md transition-all"
+              className="p-4 bg-white border border-[#e7e5e4] text-[#0066CC] rounded-[1.5rem] shadow-sm hover:shadow-md transition-all"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Sparkles className="w-3 h-3 text-[#1a237e] opacity-40" />
-              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#1a237e]">Smart Assistant</span>
+              <Brain className="w-3 h-3 text-[#0066CC] opacity-40" />
+              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-[#0066CC]">Smart Assistant</span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter">Doubt <span className="font-editorial text-[#1a237e]">Solver</span></h1>
+            <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tighter">Doubt <span className="font-editorial text-[#0066CC]">Solver</span></h1>
             <p className="text-[#57534e] text-xs font-medium">Simplified explanations for complex curriculum.</p>
           </div>
         </div>
-        <div className="w-16 h-16 rounded-[2rem] bg-[#1a237e] flex items-center justify-center text-white shadow-xl shadow-[#1a237e]/20">
+        <div className="w-16 h-16 rounded-[2rem] bg-[#0066CC] flex items-center justify-center text-white shadow-xl shadow-[#0066CC]/20">
           <Lightbulb className="w-8 h-8" />
         </div>
       </section>
@@ -68,7 +70,7 @@ export default function DoubtSolver({ userClass, onBack }: { userClass: string |
         <button
           onClick={() => { setActiveTab('engine'); setResponse(''); }}
           className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-[1.8rem] transition-all text-[11px] font-black uppercase tracking-widest ${
-            activeTab === 'engine' ? 'bg-white text-[#1a237e] shadow-xl' : 'text-[#57534e] hover:bg-white/50'
+            activeTab === 'engine' ? 'bg-white text-[#0066CC] shadow-xl' : 'text-[#57534e] hover:bg-white/50'
           }`}
         >
           <Brain className="w-4 h-4" /> Doubt Engine
@@ -76,7 +78,7 @@ export default function DoubtSolver({ userClass, onBack }: { userClass: string |
         <button
           onClick={() => { setActiveTab('assistant'); setResponse(''); }}
           className={`flex-1 flex items-center justify-center gap-3 py-4 rounded-[1.8rem] transition-all text-[11px] font-black uppercase tracking-widest ${
-            activeTab === 'assistant' ? 'bg-white text-[#1a237e] shadow-xl' : 'text-[#1c1917] hover:bg-white/50'
+            activeTab === 'assistant' ? 'bg-white text-[#0066CC] shadow-xl' : 'text-[#1c1917] hover:bg-white/50'
           }`}
         >
           <User className="w-4 h-4" /> Personal Assistant
@@ -96,20 +98,34 @@ export default function DoubtSolver({ userClass, onBack }: { userClass: string |
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <label className="text-[10px] font-black uppercase tracking-widest text-[#57534e] ml-2">Subject</label>
-                <input 
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder="e.g. Physics" 
-                  className="w-full bg-[#f8f9fa] border-none rounded-2xl p-5 text-sm font-bold text-[#1c1917] focus:ring-2 ring-[#1a237e]/20 outline-none"
-                />
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <input 
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      placeholder="e.g. Science" 
+                      className="flex-1 bg-[#f8f9fa] border-none rounded-2xl p-5 text-sm font-bold text-[#1c1917] focus:ring-2 ring-[#0066CC]/20 outline-none"
+                    />
+                    {(subject.toLowerCase().includes('math') || subject.toLowerCase().includes('ganita')) && (
+                      <select
+                        value={mathPart}
+                        onChange={(e) => setMathPart(e.target.value as any)}
+                        className="bg-[#0066CC] text-white rounded-2xl px-4 text-[10px] font-black uppercase tracking-widest outline-none border-none shadow-lg shadow-[#0066CC]/20"
+                      >
+                        <option value="Part I">Part I</option>
+                        <option value="Part II">Part II</option>
+                      </select>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="space-y-3">
                 <label className="text-[10px] font-black uppercase tracking-widest text-[#57534e] ml-2">Chapter Sequence</label>
                 <input 
                   value={chapter}
                   onChange={(e) => setChapter(e.target.value)}
-                  placeholder="e.g. Chapter 05" 
-                  className="w-full bg-[#f8f9fa] border-none rounded-2xl p-5 text-sm font-bold text-[#1c1917] focus:ring-2 ring-[#1a237e]/20 outline-none"
+                  placeholder="" 
+                  className="w-full bg-[#f8f9fa] border-none rounded-2xl p-5 text-sm font-bold text-[#1c1917] focus:ring-2 ring-[#0066CC]/20 outline-none"
                 />
               </div>
               <div className="space-y-3 md:col-span-2">
@@ -117,8 +133,8 @@ export default function DoubtSolver({ userClass, onBack }: { userClass: string |
                 <input 
                   value={chapterName}
                   onChange={(e) => setChapterName(e.target.value)}
-                  placeholder="e.g. Laws of Motion and Dynamics" 
-                  className="w-full bg-[#f8f9fa] border-none rounded-2xl p-5 text-sm font-bold text-[#1c1917] focus:ring-2 ring-[#1a237e]/20 outline-none"
+                  placeholder="" 
+                  className="w-full bg-[#f8f9fa] border-none rounded-2xl p-5 text-sm font-bold text-[#1c1917] focus:ring-2 ring-[#0066CC]/20 outline-none"
                 />
               </div>
             </div>
@@ -128,9 +144,9 @@ export default function DoubtSolver({ userClass, onBack }: { userClass: string |
               <textarea 
                 value={doubtText}
                 onChange={(e) => setDoubtText(e.target.value)}
-                placeholder="Explain the concept of quantum entanglement as if I am in Class 10..." 
+                placeholder="" 
                 rows={4}
-                className="w-full bg-[#f8f9fa] border-none rounded-3xl p-6 text-sm font-bold text-[#1c1917] focus:ring-2 ring-[#1a237e]/20 outline-none resize-none"
+                className="w-full bg-[#f8f9fa] border-none rounded-3xl p-6 text-sm font-bold text-[#1c1917] focus:ring-2 ring-[#0066CC]/20 outline-none resize-none"
               />
             </div>
           )}
@@ -138,7 +154,7 @@ export default function DoubtSolver({ userClass, onBack }: { userClass: string |
           <button 
             onClick={activeTab === 'engine' ? handleEngineSubmit : handleAssistantSubmit}
             disabled={loading || (activeTab === 'engine' ? (!subject || !chapterName) : !doubtText)}
-            className="w-full bg-[#1a237e] text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-[#1a237e]/20 hover:bg-[#283593] transition-all disabled:opacity-50"
+            className="w-full bg-[#0066CC] text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-[#0066CC]/20 hover:bg-[#0055B3] transition-all disabled:opacity-50"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-3">
@@ -162,7 +178,7 @@ export default function DoubtSolver({ userClass, onBack }: { userClass: string |
             <div className="absolute top-8 right-8">
               <button 
                 onClick={() => navigator.clipboard.writeText(response)}
-                className="p-4 bg-white rounded-2xl border border-[#e7e5e4] text-[#57534e] hover:text-[#1a237e] shadow-sm transition-all"
+                className="p-4 bg-white rounded-2xl border border-[#e7e5e4] text-[#57534e] hover:text-[#0066CC] shadow-sm transition-all"
               >
                 <Copy className="w-4 h-4" />
               </button>
@@ -177,7 +193,7 @@ export default function DoubtSolver({ userClass, onBack }: { userClass: string |
                  <Zap className="w-3 h-3" />
                  <span className="text-[8px] font-black uppercase tracking-widest">AI Assisted Solution</span>
                </div>
-               <span className="text-[8px] font-black uppercase tracking-widest">SMS Student Hub</span>
+               <span className="text-[8px] font-black uppercase tracking-widest">SM'S Student Hub</span>
             </div>
           </motion.div>
         )}

@@ -14,7 +14,7 @@ export default function Analyze({ userClass, onBack }: { userClass: string | nul
   const handleAnalyze = async () => {
     setLoading(true);
     const context = `Analyzing the provided academic document for performance patterns.${extraInfo ? `\n\nAdditional Context from Student: ${extraInfo}` : ''}`;
-    const res = await getGeminiResponse(context, prompts.analyzer, userClass, "gemini-3.1-flash-lite-preview");
+    const res = await getGeminiResponse(context, prompts.analyzer, userClass);
     setResponse(res);
     setLoading(false);
   };
@@ -25,34 +25,34 @@ export default function Analyze({ userClass, onBack }: { userClass: string | nul
         {onBack && (
           <button 
             onClick={onBack}
-            className="p-2 -ml-2 text-[#1a237e] hover:bg-blue-50 rounded-xl transition-colors"
+            className="p-2 -ml-2 text-[#0066CC] hover:bg-black/5 rounded-xl transition-colors"
           >
             <ArrowLeft className="w-6 h-6" />
           </button>
         )}
-        <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center border border-[#e9ecef] shadow-sm">
-          <FileSearch className="w-6 h-6 text-[#1a237e]" />
+        <div className="w-12 h-12 rounded-xl bg-black/5 flex items-center justify-center border border-[#e9ecef] shadow-sm">
+          <FileSearch className="w-6 h-6 text-[#0066CC]" />
         </div>
         <div>
-          <h1 className="text-xl font-black text-[#1a237e] uppercase tracking-tight">Analyze Performance</h1>
+          <h1 className="text-xl font-black text-[#0066CC] uppercase tracking-tight">Analyze Performance</h1>
           <p className="text-[#57534e] text-[11px] font-bold uppercase tracking-widest">Identify weak areas and get a personalized improvement plan.</p>
         </div>
       </div>
 
-      <div className="bg-white p-10 rounded-xl border-dashed border-2 border-[#e7e5e4] flex flex-col items-center justify-center gap-6 text-center hover:border-[#1a237e] transition-all group">
-        <div className="w-20 h-20 bg-[#fdfcfb] border border-[#e9ecef] rounded-full flex items-center justify-center shadow-inner group-hover:bg-blue-50 transition-colors">
-          <Upload className="w-10 h-10 text-[#1a237e]" />
+      <div className="bg-white p-10 rounded-xl border-dashed border-2 border-[#e7e5e4] flex flex-col items-center justify-center gap-6 text-center hover:border-[#0066CC] transition-all group">
+        <div className="w-20 h-20 bg-[#fdfcfb] border border-[#e9ecef] rounded-full flex items-center justify-center shadow-inner group-hover:bg-black/5 transition-colors">
+          <Upload className="w-10 h-10 text-[#0066CC]" />
         </div>
         <div>
-          <h2 className="text-xl font-black text-[#1a237e] uppercase tracking-tight mb-2">Upload Test/Quiz Paper</h2>
+          <h2 className="text-xl font-black text-[#0066CC] uppercase tracking-tight mb-2">Upload Test/Quiz Paper</h2>
           <p className="text-[#57534e] text-[11px] font-bold uppercase tracking-widest max-w-xs mx-auto">Upload a photo or PDF for deep AI analysis.</p>
         </div>
         <div className="flex gap-3">
-          <label className="cursor-pointer bg-[#fdfcfb] border border-[#e7e5e4] hover:bg-blue-50 px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest text-[#57534e] flex items-center gap-2 transition-all">
+          <label className="cursor-pointer bg-[#fdfcfb] border border-[#e7e5e4] hover:bg-black/5 px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest text-[#57534e] flex items-center gap-2 transition-all">
             <Camera className="w-4 h-4" /> Camera
             <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
           </label>
-          <label className="cursor-pointer bg-[#fdfcfb] border border-[#e7e5e4] hover:bg-blue-50 px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest text-[#57534e] flex items-center gap-2 transition-all">
+          <label className="cursor-pointer bg-[#fdfcfb] border border-[#e7e5e4] hover:bg-black/5 px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest text-[#57534e] flex items-center gap-2 transition-all">
             <FileText className="w-4 h-4" /> Document
             <input type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
           </label>
@@ -70,16 +70,16 @@ export default function Analyze({ userClass, onBack }: { userClass: string | nul
         <textarea 
           value={extraInfo}
           onChange={(e) => setExtraInfo(e.target.value)}
-          placeholder="e.g. This is my Class Test-2 for Physics. I found the numerical questions particularly hard..." 
+          placeholder="" 
           rows={3}
-          className="w-full bg-[#fdfcfb] border border-[#e9ecef] rounded-lg p-4 text-[#1c1917] focus:border-[#1a237e] outline-none font-bold placeholder:font-normal resize-none transition-all"
+          className="w-full bg-[#fdfcfb] border border-[#e9ecef] rounded-lg p-4 text-[#1c1917] focus:border-[#0066CC] outline-none font-bold placeholder:font-normal resize-none transition-all"
         />
       </div>
 
       <button
         onClick={handleAnalyze}
         disabled={loading || !file}
-        className="w-full bg-[#1a237e] hover:bg-[#283593] text-white font-black py-5 rounded-xl shadow-md transition-all disabled:opacity-50 text-xs uppercase tracking-[0.2em]"
+        className="w-full bg-[#0066CC] hover:bg-[#0055B3] text-white font-black py-5 rounded-xl shadow-md transition-all disabled:opacity-50 text-xs uppercase tracking-[0.2em]"
       >
         {loading ? <RotateCcw className="w-6 h-6 animate-spin mx-auto text-[#f59e0b]" /> : 'Analyze Performance'}
       </button>
@@ -90,10 +90,10 @@ export default function Analyze({ userClass, onBack }: { userClass: string | nul
           animate={{ opacity: 1, y: 0 }}
           className="bg-white p-8 rounded-xl border border-[#e9ecef] shadow-sm relative overflow-hidden"
         >
-          <div className="absolute top-0 left-0 w-1 h-full bg-[#1a237e]" />
+          <div className="absolute top-0 left-0 w-1 h-full bg-[#0066CC]" />
           <button 
             onClick={() => navigator.clipboard.writeText(response)}
-            className="absolute top-4 right-4 p-2 bg-[#fdfcfb] rounded-lg border border-[#e9ecef] text-[#57534e] hover:text-[#1a237e] transition-all shadow-sm"
+            className="absolute top-4 right-4 p-2 bg-[#fdfcfb] rounded-lg border border-[#e9ecef] text-[#57534e] hover:text-[#0066CC] transition-all shadow-sm"
           >
             <Copy className="w-4 h-4" />
           </button>

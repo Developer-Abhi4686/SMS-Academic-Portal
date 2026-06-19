@@ -16,8 +16,7 @@ import {
   Loader2,
   Inbox
 } from 'lucide-react';
-import { collection, query, where, getDocs, deleteDoc, doc, orderBy } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { supabaseStorage } from '../../lib/supabaseStorage';
 import { UserProfile, Memory } from '../../types';
 import MarkdownRenderer from '../../components/MarkdownRenderer';
 
@@ -39,17 +38,8 @@ export default function MemoryBox({ userProfile }: MemoryBoxProps) {
       }
 
       try {
-        const q = query(
-          collection(db, 'memories'),
-          where('userId', '==', userProfile.uid),
-          orderBy('createdAt', 'desc')
-        );
-        const querySnapshot = await getDocs(q);
-        const items = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Memory[];
-        setMemories(items);
+        const items = await supabaseStorage.getMemories(userProfile.uid);
+        setMemories(items as Memory[]);
       } catch (error) {
         console.error('Error fetching memories:', error);
       } finally {
@@ -63,7 +53,7 @@ export default function MemoryBox({ userProfile }: MemoryBoxProps) {
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this memory?')) return;
     try {
-      await deleteDoc(doc(db, 'memories', id));
+      await supabaseStorage.deleteMemory(id);
       setMemories(memories.filter(m => m.id !== id));
       if (selectedMemory?.id === id) setSelectedMemory(null);
     } catch (error) {
@@ -91,11 +81,11 @@ export default function MemoryBox({ userProfile }: MemoryBoxProps) {
   if (!userProfile) {
     return (
       <div className="max-w-2xl mx-auto py-20 text-center space-y-6">
-        <div className="w-20 h-20 bg-[#f0f2ff] rounded-3xl flex items-center justify-center mx-auto border border-[#e9ecef]">
-          <BrainCircuit className="w-10 h-10 text-[#1a237e]" />
+        <div className="w-20 h-20 bg-black/5 rounded-3xl flex items-center justify-center mx-auto border border-[#e9ecef]">
+          <BrainCircuit className="w-10 h-10 text-[#0066CC]" />
         </div>
         <div>
-          <h2 className="text-2xl font-black text-[#1a237e] uppercase tracking-tight">Access Locked</h2>
+          <h2 className="text-2xl font-black text-[#0066CC] uppercase tracking-tight">Access Locked</h2>
           <p className="text-[#636e72] font-bold text-xs mt-2 uppercase tracking-widest leading-relaxed">
             Please log in to access your personal Memory Box.<br/>Guest data is not persisted across sessions.
           </p>
@@ -108,11 +98,11 @@ export default function MemoryBox({ userProfile }: MemoryBoxProps) {
     <div className="max-w-6xl mx-auto space-y-8 h-full flex flex-col">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-[#f0f2ff] text-[#1a237e] border border-[#e9ecef]">
+          <div className="p-3 rounded-2xl bg-black/5 text-[#0066CC] border border-[#e9ecef]">
             <BrainCircuit className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-[#1a237e] uppercase tracking-tight">Memory Box</h1>
+            <h1 className="text-2xl font-black text-[#0066CC] uppercase tracking-tight">Memory Box</h1>
             <p className="text-[#636e72] font-bold text-[10px] uppercase tracking-widest">Your digitized academic legacy</p>
           </div>
         </div>
@@ -124,7 +114,7 @@ export default function MemoryBox({ userProfile }: MemoryBoxProps) {
             placeholder="Search memories..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-[#e9ecef] rounded-xl py-3 pl-11 pr-4 text-xs font-bold text-[#1a1a1a] focus:border-[#1a237e] outline-none transition-all shadow-sm"
+            className="w-full bg-white border border-[#e9ecef] rounded-xl py-3 pl-11 pr-4 text-xs font-bold text-[#1a1a1a] focus:border-[#0066CC] outline-none transition-all shadow-sm"
           />
         </div>
       </div>
@@ -134,7 +124,7 @@ export default function MemoryBox({ userProfile }: MemoryBoxProps) {
         <div className="lg:col-span-1 border-r border-[#e9ecef] pr-4 space-y-4 overflow-y-auto custom-scrollbar pr-2">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
-              <Loader2 className="w-8 h-8 text-[#1a237e] animate-spin" />
+              <Loader2 className="w-8 h-8 text-[#0066CC] animate-spin" />
               <p className="text-[10px] font-black text-[#636e72] uppercase tracking-widest">Loading memories...</p>
             </div>
           ) : filteredMemories.length === 0 ? (
@@ -151,15 +141,15 @@ export default function MemoryBox({ userProfile }: MemoryBoxProps) {
                   onClick={() => setSelectedMemory(memory)}
                   className={`w-full p-4 rounded-2xl border transition-all text-left flex items-start gap-4 group relative ${
                     selectedMemory?.id === memory.id 
-                      ? 'bg-[#1a237e] border-[#1a237e] text-white shadow-lg' 
-                      : 'bg-white border-[#e9ecef] text-[#2d3436] hover:border-[#1a237e]/50'
+                      ? 'bg-[#0066CC] border-[#0066CC] text-white shadow-lg' 
+                      : 'bg-white border-[#e9ecef] text-[#2d3436] hover:border-[#0066CC]/50'
                   }`}
                 >
-                  <div className={`p-2 rounded-xl ${selectedMemory?.id === memory.id ? 'bg-white/10 text-white' : 'bg-[#f8f9fa] text-[#1a237e]'}`}>
+                  <div className={`p-2 rounded-xl ${selectedMemory?.id === memory.id ? 'bg-white/10 text-white' : 'bg-[#f8f9fa] text-[#0066CC]'}`}>
                     <Icon className="w-5 h-5" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className={`text-xs font-black uppercase truncate mb-1 ${selectedMemory?.id === memory.id ? 'text-white' : 'text-[#1a237e]'}`}>
+                    <h4 className={`text-xs font-black uppercase truncate mb-1 ${selectedMemory?.id === memory.id ? 'text-white' : 'text-[#0066CC]'}`}>
                       {memory.title}
                     </h4>
                     <div className="flex items-center gap-2 opacity-60 text-[9px] font-bold">
@@ -186,11 +176,11 @@ export default function MemoryBox({ userProfile }: MemoryBoxProps) {
               >
                 <div className="p-6 border-b border-[#f1f3f5] flex items-center justify-between bg-[#f8f9fa]">
                   <div className="flex items-center gap-4">
-                    <div className="p-2.5 bg-white rounded-xl shadow-sm text-[#1a237e] border border-[#e9ecef]">
+                    <div className="p-2.5 bg-white rounded-xl shadow-sm text-[#0066CC] border border-[#e9ecef]">
                       {React.createElement(getIcon(selectedMemory.type), { className: 'w-5 h-5' })}
                     </div>
                     <div>
-                      <h3 className="text-sm font-black text-[#1a237e] uppercase tracking-tight">{selectedMemory.title}</h3>
+                      <h3 className="text-sm font-black text-[#0066CC] uppercase tracking-tight">{selectedMemory.title}</h3>
                       <p className="text-[9px] font-bold text-[#636e72] uppercase tracking-widest">{selectedMemory.type.replace('-', ' ')}</p>
                     </div>
                   </div>

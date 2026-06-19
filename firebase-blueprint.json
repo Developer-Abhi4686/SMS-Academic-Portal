@@ -35,6 +35,33 @@
         "name": { "type": "string", "description": "Student full name" }
       },
       "required": ["name"]
+    },
+    "Vault": {
+      "title": "Vault",
+      "description": "Secure storage folder for a teacher",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string", "description": "Teacher's UID" },
+        "name": { "type": "string", "description": "Teacher's Name / Vault label" },
+        "roleType": { "type": "string", "enum": ["class", "subject"] },
+        "subject": { "type": "string" },
+        "passwordHash": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["ownerId", "name", "roleType", "subject", "passwordHash", "createdAt"]
+    },
+    "VaultFile": {
+      "title": "VaultFile",
+      "description": "A file stored in a vault",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "size": { "type": "string" },
+        "uploadDate": { "type": "string" },
+        "url": { "type": "string" }
+      },
+      "required": ["name", "type", "size", "uploadDate"]
     }
   },
   "firestore": {
@@ -45,6 +72,14 @@
     "/memories/{memoryId}": {
       "schema": "Memory",
       "description": "Collection of saved work"
+    },
+    "/vaults/{vaultId}": {
+      "schema": "Vault",
+      "description": "Secure teacher vaults"
+    },
+    "/vaults/{vaultId}/files/{fileId}": {
+      "schema": "VaultFile",
+      "description": "Files inside a vault"
     },
     "/students_8A/{studentId}": { "schema": "Student", "description": "Class 8A students" },
     "/students_8B/{studentId}": { "schema": "Student", "description": "Class 8B students" },

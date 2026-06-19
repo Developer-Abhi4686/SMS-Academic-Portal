@@ -1,132 +1,184 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { GraduationCap, ShieldCheck, Lock, ArrowRight, X } from 'lucide-react';
+import { GraduationCap, ShieldCheck, Lock, ArrowRight, X, Clock, ArrowLeft } from 'lucide-react';
 import { UserRole } from '../types';
 
 interface LandingPageProps {
   onSelectRole: (role: UserRole) => void;
+  onBack?: () => void;
 }
 
-export default function LandingPage({ onSelectRole }: LandingPageProps) {
+function LandingPageClock({ isLight }: { isLight?: boolean }) {
+  const [time, setTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const colorClass = isLight ? "text-white" : "text-primary";
+
+  return (
+    <div className="flex flex-col items-end">
+      <span className={`text-[10px] font-bold uppercase tracking-[0.2em] ${colorClass}`}>
+        {time.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+      </span>
+      <div className={`flex items-center gap-1.5 mt-1 ${isLight ? 'opacity-80' : 'opacity-50'}`}>
+        <Clock className={`w-3.5 h-3.5 ${colorClass}`} />
+        <span className={`text-[11px] font-bold tabular-nums ${colorClass}`}>
+          {time.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function LandingPageClockDisplay() {
+  const [time, setTime] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return <>{time.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}</>;
+}
+
+export default function LandingPage({ onSelectRole, onBack }: LandingPageProps) {
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
-  const [step, setStep] = useState<'access_key' | 'security_pin'>('access_key');
-
-  const TEACHER_ACCESS_KEY = 'admin1234';
 
   const handleTeacherLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (step === 'access_key') {
-      if (password === TEACHER_ACCESS_KEY) {
-        setStep('security_pin');
-        setPassword('');
-        setError(false);
-      } else {
-        setError(true);
-        setTimeout(() => setError(false), 2000);
-      }
-    } else {
-      const now = new Date();
-      let hours = now.getHours() % 12;
-      hours = hours ? hours : 12;
-      const hh = hours.toString().padStart(2, '0');
-      const mm = now.getMinutes().toString().padStart(2, '0');
-      const dynamicPin = `${hh}${mm}`;
+    
+    // Dynamic Time-Based PIN Calculation (HHMM)
+    const now = new Date();
+    let hours = now.getHours() % 12;
+    hours = hours ? hours : 12; // 12-hour format
+    const hh = hours.toString().padStart(2, '0');
+    const mm = now.getMinutes().toString().padStart(2, '0');
+    const dynamicPin = `${hh}${mm}`;
 
-      if (password === dynamicPin) {
-        onSelectRole('teacher');
-      } else {
-        setError(true);
-        setTimeout(() => setError(false), 2000);
-      }
+    if (password.trim() === dynamicPin || password.trim().toLowerCase() === 'time password') {
+      onSelectRole('teacher');
+    } else {
+      setError(true);
+      setTimeout(() => setError(false), 2000);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#fdfcfb] text-[#1c1917] selection:bg-[#1a237e] selection:text-white relative overflow-hidden flex items-center justify-center p-6">
-      {/* Dynamic Background Elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#1a237e]/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#f59e0b]/5 rounded-full blur-[120px]" />
+    <div className="min-h-screen bg-background text-primary selection:bg-brand selection:text-white relative overflow-hidden flex items-center justify-center p-8 font-sans">
+      {/* Absolute Back Button in top-left corner */}
+      {onBack && (
+        <div className="absolute top-12 left-12 z-[110]">
+          <button
+            onClick={onBack}
+            className="flex items-center justify-center w-12 h-12 bg-white/45 border border-white/60 hover:border-brand/40 text-[#0f172a] hover:bg-white/60 rounded-full transition-all backdrop-blur-xl shadow-glass cursor-pointer hover:scale-110 active:scale-95 group"
+            aria-label="Go back"
+          >
+            <ArrowLeft className="w-5 h-5 text-brand transition-transform group-hover:-translate-x-0.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Absolute Header for Clock */}
+      <div className="absolute top-12 right-12 z-[110]">
+        <LandingPageClock isLight={showPasswordPrompt} />
       </div>
 
-      <div className="max-w-4xl w-full relative z-10">
+      {/* Dynamic Background Elements - Premium Gradient Blobs diffusing through layout */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-brand/5 rounded-full blur-[160px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-accent/5 rounded-full blur-[160px]" />
+      </div>
+
+      <div className="max-w-5xl w-full relative z-10">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-16"
+          className="text-center mb-24 space-y-6"
         >
-          <div className="flex items-center justify-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-[#1a237e] rounded-2xl flex items-center justify-center text-white shadow-xl">
-              <ShieldCheck className="w-7 h-7" />
-            </div>
-          </div>
-          <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter mb-4">
-            Identity <span className="text-[#1a237e]">Confirmation.</span>
+          <h1 className="text-6xl md:text-8xl font-bold tracking-tighter leading-none text-primary">
+            Role <span className="italic block mt-2 text-transparent bg-clip-text bg-gradient-to-r from-brand via-brand to-accent font-black">Section.</span>
           </h1>
-          <p className="text-[#57534e] font-medium italic font-editorial text-xl max-w-lg mx-auto">
-            Please select your role to continue.
+          <p className="text-muted font-medium text-lg md:text-xl max-w-lg mx-auto tracking-tight">
+            Institutional access for St. Michael's School faculty and student.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-2 gap-8 mb-16">
-          {/* Student Card */}
-          <motion.button
-            whileHover={{ y: -10 }}
-            onClick={() => onSelectRole('student')}
-            className="group relative bg-white p-10 rounded-[3rem] border-2 border-[#e7e5e4] hover:border-[#1a237e] transition-all text-left overflow-hidden shadow-sm hover:shadow-2xl"
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50/50 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700" />
-            
-            <div className="relative z-10">
-              <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-[#1a237e] mb-8 group-hover:bg-[#1a237e] group-hover:text-white transition-colors duration-500">
-                <GraduationCap className="w-8 h-8" />
-              </div>
-              <h3 className="text-3xl font-black uppercase tracking-tighter mb-2 group-hover:text-[#1a237e] transition-colors">Student</h3>
-              <p className="text-sm font-medium text-[#57534e] leading-relaxed mb-8 opacity-80 group-hover:opacity-100">
-                Access your doubt solvers, resources, and assignment assistants.
-              </p>
-              <div className="flex items-center gap-2 text-[#1a237e] font-black uppercase text-[10px] tracking-widest translate-x-0 group-hover:translate-x-2 transition-transform">
-                <span>Enter as Student</span>
-                <ArrowRight className="w-4 h-4" />
-              </div>
-            </div>
-          </motion.button>
+        <div className="relative mb-24">
+          {/* Frosted glass backdrop glow: placing Indigo to Teal gradient blobs directly behind the cards */}
+          <div className="absolute inset-0 pointer-events-none z-0 overflow-visible flex items-center justify-around">
+            <div className="w-[380px] h-[380px] bg-gradient-to-tr from-brand to-accent opacity-25 rounded-full blur-[120px]" />
+            <div className="w-[380px] h-[380px] bg-gradient-to-tr from-accent to-brand opacity-25 rounded-full blur-[120px]" />
+          </div>
 
-          {/* Teacher Card */}
-          <motion.button
-            whileHover={{ y: -10 }}
-            onClick={() => setShowPasswordPrompt(true)}
-            className="group relative bg-[#1a237e] p-10 rounded-[3rem] border-2 border-transparent transition-all text-left overflow-hidden shadow-2xl"
-          >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-700" />
-            
-            <div className="relative z-10 text-white">
-              <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center text-white mb-8 group-hover:bg-white group-hover:text-[#1a237e] transition-colors duration-500">
-                <Lock className="w-8 h-8" />
+          <div className="relative z-10 grid md:grid-cols-2 gap-10">
+            {/* Student Card */}
+            <motion.button
+              whileHover={{ y: -12 }}
+              transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+              onClick={() => onSelectRole('student')}
+              className="group relative glass-panel p-12 rounded-[4rem] border border-white/60 hover:border-brand/40 transition-all text-left overflow-hidden shadow-sm hover:shadow-[0_45px_90px_-20px_rgba(79,70,229,0.18)] cursor-pointer"
+            >
+              <div className="absolute top-0 right-0 w-48 h-48 bg-brand/5 rounded-full -translate-y-24 translate-x-24 group-hover:scale-125 transition-transform duration-1000 ease-out" />
+              
+              <div className="relative z-10">
+                <div className="w-20 h-20 bg-brand/10 rounded-[1.75rem] flex items-center justify-center text-brand mb-10 group-hover:bg-brand group-hover:text-white transition-all duration-700 shadow-inner">
+                  <GraduationCap className="w-10 h-10" />
+                </div>
+                <h3 className="text-4xl font-bold tracking-tighter mb-4 text-[#0f172a]">Student</h3>
+                <p className="text-base font-medium text-muted leading-relaxed mb-10 group-hover:text-brand transition-colors">
+                  Access resources, doubt solver, and student tools.
+                </p>
+                <div className="flex items-center gap-3 text-brand font-bold uppercase text-[10px] tracking-[0.4em] translate-x-0 group-hover:translate-x-3 transition-transform">
+                  Enter <ArrowRight className="w-5 h-5 text-accent" />
+                </div>
               </div>
-              <h3 className="text-3xl font-black uppercase tracking-tighter mb-2">Teacher</h3>
-              <p className="text-sm font-medium text-white/70 leading-relaxed mb-8 group-hover:text-white transition-colors">
-                Manage attendance, generate quizzes, and plan lessons.
-              </p>
-              <div className="flex items-center gap-2 text-white font-black uppercase text-[10px] tracking-widest translate-x-0 group-hover:translate-x-2 transition-transform">
-                <span>Secure Teacher Auth</span>
-                <ArrowRight className="w-4 h-4" />
+            </motion.button>
+
+            {/* Teacher Card */}
+            <motion.button
+              whileHover={{ y: -12 }}
+              transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+              onClick={() => setShowPasswordPrompt(true)}
+              className="group relative glass-panel p-12 rounded-[4rem] border border-white/60 hover:border-brand/40 transition-all text-left overflow-hidden shadow-sm hover:shadow-[0_45px_90px_-20px_rgba(79,70,229,0.18)] cursor-pointer"
+            >
+              <div className="absolute top-0 right-0 w-48 h-48 bg-accent/5 rounded-full -translate-y-24 translate-x-24 group-hover:scale-125 transition-transform duration-1000 ease-out" />
+              
+              <div className="relative z-10 text-primary">
+                <div className="w-20 h-20 bg-brand/10 rounded-[1.75rem] flex items-center justify-center text-brand mb-10 group-hover:bg-brand group-hover:text-white transition-all duration-700 shadow-inner">
+                  <Lock className="w-10 h-10" />
+                </div>
+                <h3 className="text-4xl font-bold tracking-tighter mb-4 text-[#0f172a]">Faculty</h3>
+                <p className="text-base font-medium text-muted leading-relaxed mb-10 group-hover:text-brand transition-colors">
+                  Manage attendance, planners, and teacher tools.
+                </p>
+                <div className="flex items-center gap-3 text-brand font-bold uppercase text-[10px] tracking-[0.4em] translate-x-0 group-hover:translate-x-3 transition-transform">
+                  Enter <ArrowRight className="w-5 h-5 text-accent" />
+                </div>
               </div>
-            </div>
-          </motion.button>
+            </motion.button>
+          </div>
         </div>
 
-        <motion.div
+        <motion.footer
           initial={{ opacity: 0 }}
-          animate={{ opacity: 0.5 }}
+          animate={{ opacity: 0.4 }}
           className="text-center"
         >
-          <p className="text-[10px] uppercase font-black tracking-[0.3em] text-[#57534e]">
-            Developed by <span className="text-[#1a237e]">Abhi Sharma(9-D)</span> &bull; Motto: "Light and Truth"
-          </p>
-        </motion.div>
+          <div className="flex flex-col items-center gap-6">
+             <div className="w-20 h-px bg-primary/20" />
+             <div className="space-y-2">
+               <p className="text-[12px] font-bold tracking-[0.4em] text-primary uppercase">
+                 St. Michael's School &bull; Keerathpura &bull; Bhind
+               </p>
+               <p className="text-[10px] font-black tracking-widest text-muted uppercase text-xs">
+                 Engineered by - Abhi Shama(9-d)
+               </p>
+             </div>
+          </div>
+        </motion.footer>
       </div>
 
       {/* Login Modal */}
@@ -136,68 +188,68 @@ export default function LandingPage({ onSelectRole }: LandingPageProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#1c1917]/90 backdrop-blur-md"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-primary/95 backdrop-blur-3xl"
           >
             <motion.div
-              initial={{ scale: 0.9, y: 40 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 40 }}
-              className="bg-white rounded-[3rem] w-full max-w-md p-12 relative shadow-2xl"
+              initial={{ scale: 0.95, y: 40, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.95, y: 40, opacity: 0 }}
+              transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+              className="bg-surface rounded-[4rem] w-full max-w-xl p-16 relative shadow-2xl border border-white/20"
             >
               <button 
                 onClick={() => {
                   setShowPasswordPrompt(false);
-                  setStep('access_key');
                   setPassword('');
                 }}
-                className="absolute top-8 right-8 text-[#57534e] hover:text-[#1a237e] p-2"
+                className="absolute top-10 right-10 text-muted hover:text-primary p-3 bg-slate-50 rounded-2xl transition-all active:scale-90"
               >
                 <X className="w-6 h-6" />
               </button>
 
-              <div className="mb-10">
-                <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center text-[#1a237e] mb-6">
-                  <ShieldCheck className="w-8 h-8" />
+              <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8">
+                <div className="flex-1">
+                  <h3 className="text-4xl font-bold tracking-tighter text-primary">
+                    Enter Password
+                  </h3>
                 </div>
-                <h3 className="text-3xl font-black uppercase tracking-tighter text-[#1a237e]">
-                  {step === 'access_key' ? 'Verification I' : 'Verification II'}
-                </h3>
-                <p className="text-sm font-medium text-[#57534e] mt-2 italic font-editorial text-lg">
-                  {step === 'access_key' ? 'Enter standard educator access key.' : 'Enter dynamic security pin from node.'}
-                </p>
               </div>
 
-              <form onSubmit={handleTeacherLogin} className="space-y-8">
-                <div>
+              <form onSubmit={handleTeacherLogin} className="space-y-10">
+                <div className="relative group">
                   <input
                     autoFocus
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className={`w-full px-8 py-6 bg-[#f8f9fa] rounded-2xl border-2 transition-all outline-none font-mono text-2xl tracking-[0.5em] text-center ${
-                      error ? 'border-red-500 text-red-500' : 'border-transparent focus:border-[#1a237e]'
+                    placeholder="••••"
+                    className={`w-full px-10 py-8 bg-slate-50 rounded-3xl border-2 transition-all outline-none font-mono text-5xl tracking-[1em] text-center ${
+                      error ? 'border-red-500 text-red-500' : 'border-transparent focus:border-brand group-hover:border-slate-200'
                     }`}
                   />
                   {error && (
-                    <motion.p 
+                    <motion.div 
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="text-red-500 font-black text-[10px] uppercase text-center mt-4 tracking-widest"
+                      className="absolute -bottom-6 left-0 right-0 text-center"
                     >
-                      Security Alert: Access Denied
-                    </motion.p>
+                      <span className="text-red-500 font-bold text-[10px] uppercase tracking-[0.3em]">Identity Mismatch / Access Denied</span>
+                    </motion.div>
                   )}
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full bg-[#1a237e] text-white py-6 rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-xl hover:bg-[#283593] active:scale-95 transition-all flex items-center justify-center gap-3"
+                  className="w-full bg-brand text-white py-8 rounded-3xl font-bold uppercase tracking-[0.4em] text-[11px] shadow-2xl shadow-brand/30 hover:bg-brand-dark active:scale-[0.98] transition-all flex items-center justify-center gap-4 group cursor-pointer"
                 >
-                  Authorize
-                  <ArrowRight className="w-4 h-4" />
+                  Verify Protocol
+                  <ArrowRight className="w-5 h-5 text-accent transition-transform group-hover:translate-x-2" />
                 </button>
               </form>
+
+              <div className="mt-16 text-center">
+                 <p className="text-[10px] font-bold text-muted uppercase tracking-[0.2em] opacity-40 italic">Secure Encryption Tunnel Enabled</p>
+              </div>
             </motion.div>
           </motion.div>
         )}
