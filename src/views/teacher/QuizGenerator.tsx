@@ -59,8 +59,19 @@ export default function QuizGenerator({ userClass, onBack }: { userClass: string
       const res = await getGeminiResponse(prompt, prompts.mcqGenerator, userClass);
       
       setLoadingStatus('Finalizing logic structures...');
-      const jsonStr = res.replace(/```json\n?|\n?```/g, '').trim();
-      const parsed = JSON.parse(jsonStr);
+      let cleanJsonStr = res.trim();
+      
+      // If there's a markdown json codeblock, extract its contents
+      if (cleanJsonStr.includes('```')) {
+        const match = cleanJsonStr.match(/```json?\s*([\s\S]*?)\s*```/);
+        if (match) {
+          cleanJsonStr = match[1].trim();
+        } else {
+          cleanJsonStr = cleanJsonStr.replace(/```json\n?|\n?```/g, '').trim();
+        }
+      }
+      
+      const parsed = JSON.parse(cleanJsonStr);
       setQuizData(parsed);
     } catch (err: any) {
       console.error("Quiz generation failed:", err);
@@ -96,8 +107,8 @@ export default function QuizGenerator({ userClass, onBack }: { userClass: string
         </div>
       </header>
 
-      <div className="glass-panel p-10 rounded-[3.5rem] shadow-2xl space-y-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="glass-panel p-5 sm:p-10 rounded-[2rem] sm:rounded-[3.5rem] shadow-2xl space-y-8 sm:space-y-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
           <div className="space-y-3">
             <label className="text-[10px] font-bold uppercase tracking-widest text-muted ml-3">Subject Matrix</label>
             <div className="flex gap-3">
@@ -105,13 +116,13 @@ export default function QuizGenerator({ userClass, onBack }: { userClass: string
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="e.g. Science" 
-                className="flex-1 bg-white/50 border border-white/40 rounded-3xl p-5 text-primary focus:border-accent outline-none font-bold backdrop-blur-sm shadow-inner transition-all placeholder:font-medium placeholder:opacity-30"
+                className="flex-1 bg-white/50 border border-white/40 rounded-2xl sm:rounded-3xl p-4 sm:p-5 text-primary focus:border-accent outline-none font-bold backdrop-blur-sm shadow-inner transition-all placeholder:font-medium placeholder:opacity-30"
               />
               {(subject.toLowerCase().includes('math') || subject.toLowerCase().includes('ganita')) && (
                 <select
                   value={mathPart}
                   onChange={(e) => setMathPart(e.target.value as any)}
-                  className="bg-primary text-white rounded-3xl px-6 text-[10px] font-bold uppercase tracking-widest outline-none border-none shadow-xl shadow-primary/20"
+                  className="bg-primary text-white rounded-2xl sm:rounded-3xl px-4 sm:px-6 text-[10px] font-bold uppercase tracking-widest outline-none border-none shadow-xl shadow-primary/20"
                 >
                   <option value="Part I">Part I</option>
                   <option value="Part II">Part II</option>
@@ -125,7 +136,7 @@ export default function QuizGenerator({ userClass, onBack }: { userClass: string
               value={chapter}
               onChange={(e) => setChapter(e.target.value)}
               placeholder="Chapter Title or No." 
-              className="w-full bg-white/50 border border-white/40 rounded-3xl p-5 text-primary focus:border-accent outline-none font-bold backdrop-blur-sm shadow-inner transition-all placeholder:font-medium placeholder:opacity-30"
+              className="w-full bg-white/50 border border-white/40 rounded-2xl sm:rounded-3xl p-4 sm:p-5 text-primary focus:border-accent outline-none font-bold backdrop-blur-sm shadow-inner transition-all placeholder:font-medium placeholder:opacity-30"
             />
           </div>
         </div>
@@ -230,7 +241,7 @@ export default function QuizGenerator({ userClass, onBack }: { userClass: string
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: idx * 0.05 }}
-                  className="bg-surface p-10 rounded-[2.5rem] border border-border-subtle shadow-sm relative overflow-hidden group"
+                  className="bg-surface p-5 sm:p-10 rounded-[1.5rem] sm:rounded-[2.5rem] border border-border-subtle shadow-sm relative overflow-hidden group"
                 >
                   <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${isSelected ? (isCorrect ? 'bg-emerald-500' : 'bg-red-500') : 'bg-slate-200'}`} />
                   

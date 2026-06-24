@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, RotateCcw, UserCircle, Edit3, Check, ArrowLeft, Plus, X, Trash2, Search } from 'lucide-react';
+import { 
+  Users, RotateCcw, UserCircle, Check, ArrowLeft, 
+  Plus, X, Trash2, Search, Sparkles, Star, RefreshCw,
+  UserPlus, Play, Trophy, HelpCircle
+} from 'lucide-react';
 import { supabaseStorage } from '../../lib/supabaseStorage';
 
 interface Student {
@@ -14,44 +18,67 @@ interface StudentSelectorProps {
   defaultSection?: string | null;
 }
 
-const CLASSES = [
-  'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'
-];
+// Deterministic soft powder blue / cyan shade generator based on student name strings
+const getPastelColor = (name: string) => {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const lightness = 92 + (Math.abs(hash) % 4); // 92% to 95% light
+  const hue = 195 + (Math.abs(hash) % 20); // 195 to 215 (soft ocean / powder blue range)
+  return `hsl(${hue}, 85%, ${lightness}%)`;
+};
+
+const getDeepColor = (name: string) => {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = 195 + (Math.abs(hash) % 20);
+  return `hsl(${hue}, 80%, 25%)`;
+};
+
+const getInitials = (name: string) => {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
 
 export default function StudentSelector({ onBack, defaultClass, defaultSection }: StudentSelectorProps) {
+  // Use the passed class/section or default constants
+  const teacherClass = defaultClass || 'X';
+  const teacherSection = defaultSection || 'A';
+
   const [students, setStudents] = useState<Student[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [calledIds, setCalledIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newStudentName, setNewStudentName] = useState('');
-  
-  // Filter state
-  const [filterClass, setFilterClass] = useState(defaultClass || 'X');
-  const [filterSection, setFilterSection] = useState(defaultSection || 'A');
+  const [flashName, setFlashName] = useState<string>('');
 
   const fetchStudents = async () => {
     setLoading(true);
-    setCalledIds(new Set()); // Reset called list on filter change
+    setCalledIds(new Set()); // Reset session called roster
+    setSelectedIdx(null);
+    setFlashName('');
     try {
       let fetchedStudents: Student[] = [];
-      
-      const studentsList = await supabaseStorage.getStudents(filterClass, filterSection);
+      const studentsList = await supabaseStorage.getStudents(teacherClass, teacherSection);
       fetchedStudents = studentsList.map(s => ({
         id: s.id,
         fullName: s.name
       }));
       
-      // Filter out ABSENT students based on today's attendance
+      // Filter out absent students from today's attendance checks for fair play
       try {
         const today = new Date().toISOString().split('T')[0];
-        const attDoc = await supabaseStorage.getAttendance(filterClass, filterSection, today);
+        const attDoc = await supabaseStorage.getAttendance(teacherClass, teacherSection, today);
         if (attDoc) {
           const records = attDoc.records || {};
-          // If attendance is marked for this class, strictly only show Present or Late
           if (Object.keys(records).length > 0) {
             fetchedStudents = fetchedStudents.filter(s => {
               const status = records[s.id];
@@ -60,12 +87,10 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
           }
         }
       } catch (e) {
-        console.warn("Could not fetch today's attendance for filtering:", e);
+        console.warn("Could not fetch today's attendance list:", e);
       }
 
-      // Sort alphabetically
       fetchedStudents.sort((a, b) => a.fullName.localeCompare(b.fullName));
-      
       setStudents(fetchedStudents);
     } catch (err) {
       console.error("Failed to fetch students:", err);
@@ -77,7 +102,7 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
 
   useEffect(() => {
     fetchStudents();
-  }, [filterClass, filterSection]);
+  }, [teacherClass, teacherSection]);
 
   const filteredStudents = students.filter(student => 
     student.fullName.toLowerCase().includes(searchQuery.toLowerCase())
@@ -86,10 +111,7 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
   const handleSelect = () => {
     if (students.length === 0) return;
 
-    // Determine remaining students
     let remaining = students.filter(s => !calledIds.has(s.id));
-    
-    // If everyone was called, reset the cycle
     if (remaining.length === 0) {
       setCalledIds(new Set());
       remaining = [...students];
@@ -98,20 +120,24 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
     setIsSpinning(true);
     setSelectedIdx(null);
     
-    let count = 0;
+    let tickerCount = 0;
+    const tickerLimit = 20;
+    
     const interval = setInterval(() => {
-      // During animation, we can show any student for effect
-      setSelectedIdx(Math.floor(Math.random() * students.length));
-      count++;
+      const randomIdx = Math.floor(Math.random() * students.length);
+      const randomPupil = students[randomIdx];
+      setFlashName(randomPupil.fullName);
       
-      if (count > 20) {
+      tickerCount++;
+      
+      if (tickerCount >= tickerLimit) {
         clearInterval(interval);
         
-        // Pick final from remaining list
         const luckyStudent = remaining[Math.floor(Math.random() * remaining.length)];
         const luckyIdx = students.findIndex(s => s.id === luckyStudent.id);
         
         setSelectedIdx(luckyIdx);
+        setFlashName(luckyStudent.fullName);
         setCalledIds(prev => {
           const next = new Set(prev);
           next.add(luckyStudent.id);
@@ -119,7 +145,7 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
         });
         setIsSpinning(false);
       }
-    }, 100);
+    }, 90);
   };
 
   const handleAddStudent = async (e: React.FormEvent) => {
@@ -129,8 +155,8 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
     try {
       const student = await supabaseStorage.addStudent(
         newStudentName.trim(),
-        filterClass,
-        filterSection
+        teacherClass,
+        teacherSection
       );
       
       const newStudent: Student = {
@@ -139,10 +165,10 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
       };
       setStudents(prev => [...prev, newStudent].sort((a, b) => a.fullName.localeCompare(b.fullName)));
     } catch (err) {
-      console.error("Failed to insert student into Supabase:", err);
-      // Fallback local insert
+      console.error("Failed to insert student into database:", err);
+      // Fallback local representation
       const newStudent: Student = {
-        id: `manual-${Date.now()}`,
+        id: `local-${Date.now()}`,
         fullName: newStudentName.trim()
       };
       setStudents(prev => [...prev, newStudent].sort((a, b) => a.fullName.localeCompare(b.fullName)));
@@ -156,7 +182,7 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
     try {
       await supabaseStorage.deleteStudent(id);
     } catch (err) {
-      console.error("Error executing delete command in Supabase:", err);
+      console.error("Error executing delete command:", err);
     }
     setStudents(prev => prev.filter(s => s.id !== id));
     if (selectedIdx !== null && students[selectedIdx]?.id === id) {
@@ -164,189 +190,301 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <div className="w-12 h-12 border-4 border-[#0066CC] border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-[#0066CC] font-black text-xs uppercase tracking-widest">Accessing Student Database...</p>
-      </div>
-    );
-  }
+  const resetRosterCycle = () => {
+    setCalledIds(new Set());
+    setSelectedIdx(null);
+    setFlashName('');
+  };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="max-w-6xl mx-auto space-y-6 pb-20 selection:bg-sky-100/80">
+      
+      {/* TOP HEADER STATUS */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/60">
         <div className="flex items-center gap-3">
           <button 
             onClick={onBack}
-            className="p-2 -ml-2 text-[#0066CC] hover:bg-black/5 rounded-xl transition-colors"
+            className="p-2 -ml-2 text-neutral-500 hover:text-slate-950 hover:bg-slate-100 rounded-full transition-all duration-200 cursor-pointer"
             title="Go Back"
           >
-            <ArrowLeft className="w-6 h-6" />
+            <ArrowLeft className="w-5 h-5" />
           </button>
-          <div className="p-3 rounded-2xl bg-black/5 text-[#0066CC] border border-neutral-200">
-            <Users className="w-6 h-6" />
+          <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600">
+            <Users className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-[#0066CC] uppercase tracking-tight">Student Selector</h1>
-            <p className="text-[#57534e] font-bold text-xs uppercase tracking-widest">
-              {students.length} Students Active
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none uppercase font-sans">
+              Student Selector
+            </h1>
+            <p className="text-slate-400 font-mono font-bold text-[9px] uppercase tracking-wider mt-1.5">
+              Class {teacherClass}-{teacherSection} · {students.length} Pupils Synced
             </p>
           </div>
         </div>
         
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 bg-[#0066CC] text-white px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-[#0055B3] transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Add Student
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={resetRosterCycle}
+            disabled={calledIds.size === 0}
+            className="flex items-center gap-1.5 bg-white border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-white disabled:hover:text-slate-600 px-4 py-2 rounded-lg font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            Reset Cycle
+          </button>
+        </div>
       </div>
 
-      <div className="bg-black/5 p-4 rounded-2xl border border-[#0066CC]/10 flex flex-wrap gap-4 items-end mb-6">
-        <div className="flex-1 min-w-[300px] w-full mb-2">
-          <label className="block text-[10px] font-black text-[#0066CC] uppercase tracking-widest mb-2 pl-1">Search Student</label>
+      {/* DUAL PARTITION SYSTEM CONTAINER */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        {/* PARTITION 1: CLASS ROSTER DIRECTORY & SPOTLIGHT (LEFT SIDE OVERVIEW) */}
+        <div className="lg:col-span-7 bg-white border border-slate-200/80 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.015)] p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 font-mono">
+              Class Roster List ({filteredStudents.length})
+            </h3>
+            <button
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="text-xs font-black text-sky-600 hover:text-sky-700 flex items-center gap-1 uppercase tracking-wider transition-colors cursor-pointer"
+            >
+              {showAddForm ? <X className="w-3 h-3" /> : <Plus className="w-3.5 h-3.5" />}
+              {showAddForm ? 'Close' : 'Add Name'}
+            </button>
+          </div>
+
+          {/* Quick Register Foldout Form */}
+          <AnimatePresence>
+            {showAddForm && (
+              <motion.form 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                onSubmit={handleAddStudent}
+                className="overflow-hidden bg-slate-50 border border-slate-100 rounded-xl p-3 space-y-2.5"
+              >
+                <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">Register New Candidate</div>
+                <input
+                  type="text"
+                  placeholder="e.g. Richard Feynman"
+                  value={newStudentName}
+                  onChange={(e) => setNewStudentName(e.target.value)}
+                  className="w-full bg-white border border-slate-200 focus:border-sky-300 rounded-lg px-3 py-1.5 font-bold text-xs text-slate-800 outline-none transition-all"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  disabled={!newStudentName.trim()}
+                  className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-black uppercase tracking-wider text-[9px] py-2.5 rounded-lg transition-all cursor-pointer shadow-sm active:scale-[0.99]"
+                >
+                  Confirm Registration
+                </button>
+              </motion.form>
+            )}
+          </AnimatePresence>
+
+          {/* Search Box */}
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#57534e]" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
             <input 
               type="text"
-              placeholder="Type student name..."
+              placeholder="Filter names..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-[#dee2e6] rounded-xl pl-11 pr-4 py-2 font-bold text-[#0066CC] focus:ring-2 ring-[#0066CC]/20 outline-none"
+              className="w-full bg-slate-50 hover:bg-slate-50/80 focus:bg-white border border-transparent focus:border-slate-300 rounded-xl pl-9 pr-8 py-2 font-bold text-xs text-slate-700 outline-none transition-all duration-200"
             />
+            {searchQuery && (
+              <button 
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-700"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+
+          {/* Roster scrollable pane */}
+          <div className="max-h-[300px] overflow-y-auto pr-1 space-y-1.5 custom-scrollbar dropdown-scroll">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-2 text-slate-400">
+                <RefreshCw className="w-6 h-6 animate-spin text-sky-400" />
+                <p className="font-mono text-[8.5px] uppercase tracking-wider">Syncing roster database...</p>
+              </div>
+            ) : filteredStudents.length === 0 ? (
+              <div className="text-center py-12 text-slate-400 border border-dashed border-slate-100 rounded-xl bg-slate-50/50">
+                <HelpCircle className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="text-xs font-semibold text-slate-500">No students correspond to query</p>
+              </div>
+            ) : (
+              filteredStudents.map((student) => {
+                const studentListIdx = students.findIndex(s => s.id === student.id);
+                const isSelected = selectedIdx === studentListIdx;
+                const hasBeenCalled = calledIds.has(student.id);
+                
+                const avatarBg = getPastelColor(student.fullName);
+                const avatarTextColor = getDeepColor(student.fullName);
+
+                return (
+                  <motion.div
+                    key={student.id}
+                    whileHover={{ scale: 1.01, x: 2 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => {
+                      if (!isSpinning) {
+                        setSelectedIdx(studentListIdx);
+                      }
+                    }}
+                    className={`p-2 rounded-xl border flex items-center gap-3 relative cursor-pointer select-none transition-all group ${
+                      isSelected 
+                        ? 'border-sky-300 bg-sky-50/30 shadow-sm ring-1 ring-sky-300/10' 
+                        : 'border-slate-100 bg-white hover:border-slate-200'
+                    }`}
+                  >
+                    {/* Compact Circle Avatar */}
+                    <div 
+                      style={{ backgroundColor: avatarBg, color: avatarTextColor }}
+                      className="w-7 h-7 rounded bg-sky-50 flex items-center justify-center font-black text-[9px] uppercase shadow-sm shrink-0 relative"
+                    >
+                      {getInitials(student.fullName)}
+                      {hasBeenCalled && !isSelected && (
+                        <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center border border-white text-[8px] font-bold shadow-sm">
+                          ✓
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0 pr-6">
+                      <h4 className={`font-bold text-slate-800 text-[10.5px] truncate uppercase tracking-tight transition-all duration-150 ${
+                        hasBeenCalled && !isSelected ? 'opacity-35 line-through text-slate-400' : ''
+                      }`}>
+                        {student.fullName}
+                      </h4>
+                    </div>
+
+                    {/* Left Checked marker */}
+                    {isSelected && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 bg-sky-50 text-sky-600 rounded-full p-0.5 border border-sky-100">
+                        <Check className="w-3 h-3 stroke-[2.5]" />
+                      </div>
+                    )}
+
+                    {/* Trash on hover */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (confirm(`Remove ${student.fullName} permanently from Class ${teacherClass}-${teacherSection}?`)) {
+                          removeStudent(student.id);
+                        }
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-md transition-all cursor-pointer"
+                      title="Deregister pupil"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </motion.div>
+                );
+              })
+            )}
+          </div>
+
+          {/* SPOTLIGHT SCREEN: APPEARS ONLY BELOW THE LIST IN THE LEFT PARTITION */}
+          <div className="pt-4 border-t border-slate-100">
+            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-center flex items-center justify-between text-xs text-slate-500 font-semibold">
+              <span className="font-extrabold uppercase text-[9px] tracking-wider text-slate-400">Session Called Roster</span>
+              <span className="font-mono font-black text-indigo-600 bg-indigo-50/70 border border-indigo-100/50 px-2.5 py-0.5 rounded-full">
+                {calledIds.size} / {students.length} Called
+              </span>
+            </div>
           </div>
         </div>
-        <div className="flex-1 min-w-[140px]">
-          <label className="block text-[10px] font-black text-[#0066CC] uppercase tracking-widest mb-2 pl-1">Target Class</label>
-          <select 
-            value={filterClass}
-            onChange={(e) => setFilterClass(e.target.value)}
-            className="w-full bg-white border border-[#dee2e6] rounded-xl px-4 py-2 font-bold text-[#0066CC] focus:ring-2 ring-[#0066CC]/20 outline-none appearance-none cursor-pointer"
-          >
-            {CLASSES.map(cls => <option key={cls} value={cls}>{cls}</option>)}
-          </select>
-        </div>
-        <div className="flex-1 min-w-[140px]">
-          <label className="block text-[10px] font-black text-[#0066CC] uppercase tracking-widest mb-2 pl-1">Target Section</label>
-          <select 
-            value={filterSection}
-            onChange={(e) => setFilterSection(e.target.value)}
-            className="w-full bg-white border border-[#dee2e6] rounded-xl px-4 py-2 font-bold text-[#0066CC] focus:ring-2 ring-[#0066CC]/20 outline-none appearance-none cursor-pointer"
-          >
-            {['A', 'B', 'C', 'D', 'E'].map(sec => <option key={sec} value={sec}>{sec}</option>)}
-          </select>
-        </div>
-        <button 
-          onClick={fetchStudents}
-          className="p-3 bg-white border border-[#dee2e6] rounded-xl text-[#0066CC] hover:bg-white/80 transition-colors"
-          title="Refresh List"
-        >
-          <RotateCcw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-        </button>
-      </div>
 
-      <AnimatePresence>
-        {showAddForm && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden mb-6"
-          >
-            <form onSubmit={handleAddStudent} className="bg-white p-6 rounded-2xl border-2 border-[#0066CC] flex gap-3">
-              <input
-                autoFocus
-                type="text"
-                placeholder="Enter Student Full Name"
-                value={newStudentName}
-                onChange={(e) => setNewStudentName(e.target.value)}
-                className="flex-1 bg-[#f8f9fa] border-none rounded-xl px-4 py-2 font-bold text-[#0066CC] focus:ring-2 ring-[#0066CC]/20 outline-none"
-              />
-              <button
-                type="submit"
-                className="bg-[#0066CC] text-white px-6 rounded-xl font-bold uppercase text-xs"
-              >
-                Add
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowAddForm(false)}
-                className="p-2 text-[#636e72] hover:text-red-500"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </form>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {filteredStudents.map((student, idx) => (
-          <motion.div
-            key={student.id}
-            animate={{
-              scale: selectedIdx === idx ? 1.05 : 1,
-              backgroundColor: selectedIdx === idx ? '#f5f5f7' : '#ffffff',
-              borderColor: selectedIdx === idx ? '#0066CC' : '#e9ecef'
-            }}
-            className="p-6 rounded-2xl border flex flex-col items-center gap-4 group relative overflow-hidden shadow-sm"
-          >
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${selectedIdx === idx ? 'bg-[#0066CC] text-white' : 'bg-[#fdfcfb] text-[#0066CC] border border-[#dee2e6]'} ${calledIds.has(student.id) && selectedIdx !== idx ? 'opacity-40' : ''}`}>
-              <UserCircle className="w-8 h-8" />
-            </div>
-
-            <div className="flex flex-col items-center gap-1">
-              <span className={`font-extrabold text-[#1a1a1a] text-base transition-opacity ${calledIds.has(student.id) && selectedIdx !== idx ? 'opacity-40' : ''}`}>
-                {student.fullName}
+        {/* PARTITION 2: RAPID SELECTOR STAGE (RIGHT MAIN SPACE) - MINIMAL ROLL BUTTON & RESULT */}
+        <div className="lg:col-span-5 bg-white border border-slate-200/80 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.015)] p-6 flex flex-col items-center justify-center min-h-[320px] relative overflow-hidden">
+          {/* Subtle gradient bar decoration */}
+          <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-indigo-400 via-sky-400 to-purple-400" />
+          
+          <div className="relative z-10 w-full flex flex-col items-center justify-center space-y-6">
+            <div className="text-center space-y-1">
+              <span className="inline-block text-[9px] text-indigo-600 font-mono font-black uppercase tracking-[0.2em] bg-indigo-50 px-2.5 py-0.5 rounded-full">
+                Raffle Loader
               </span>
-              {calledIds.has(student.id) && selectedIdx !== idx && (
-                <span className="text-[9px] font-black text-[#636e72] uppercase tracking-tighter">Called</span>
-              )}
+              <p className="text-[10px] text-slate-400 uppercase tracking-wider font-extrabold">
+                Spotlight Candidate
+              </p>
             </div>
-            
-            <button
-              onClick={() => removeStudent(student.id)}
-              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all"
-              title="Remove from list"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
 
-            {selectedIdx === idx && !isSpinning && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="absolute top-2 left-2 bg-[#00b8d4] rounded-full p-1 border-2 border-white shadow-sm"
-              >
-                <Check className="w-4 h-4 text-white font-black" />
-              </motion.div>
-            )}
-          </motion.div>
-        ))}
+            {/* Crucial Single Select Button - Minimalist and easy click */}
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleSelect}
+              disabled={isSpinning || students.length === 0}
+              className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-100 disabled:text-slate-400 text-white font-black uppercase tracking-[0.15em] text-[10.5px] flex items-center justify-center gap-2 shadow-md shadow-indigo-600/10 cursor-pointer transition-all border border-indigo-500/20"
+            >
+              {isSpinning ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
+              ) : (
+                <Play className="w-3.5 h-3.5 fill-white text-transparent stroke-white" />
+              )}
+              <span>{isSpinning ? 'Rolling...' : 'Roll'}</span>
+            </motion.button>
+            
+            {/* Show decision result immediately under the button */}
+            <div className="w-full pt-1">
+              <AnimatePresence mode="wait">
+                {isSpinning ? (
+                  <motion.div
+                    key="rolling-inner"
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    className="p-4 bg-slate-50 border border-slate-100 rounded-xl text-center space-y-1"
+                  >
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-indigo-500 animate-pulse block">
+                      Selecting...
+                    </span>
+                    <h5 className="text-sm font-black text-slate-700 uppercase truncate">
+                      {flashName || 'Waiting...'}
+                    </h5>
+                  </motion.div>
+                ) : selectedIdx !== null && students[selectedIdx] ? (
+                  <motion.div
+                    key="chosen-inner"
+                    initial={{ opacity: 0, scale: 0.98, y: 5 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 22 }}
+                    className="p-4.5 bg-gradient-to-tr from-indigo-50 via-indigo-50/50 to-purple-50/30 border border-indigo-100/60 rounded-xl text-center space-y-1.5 relative overflow-hidden shadow-sm"
+                  >
+                    <div className="flex justify-center gap-1 text-indigo-500">
+                      <Sparkles className="w-3 h-3 fill-indigo-200/50" />
+                      <Trophy className="w-3.5 h-3.5 fill-indigo-200/50 text-indigo-600" />
+                      <Sparkles className="w-3 h-3 fill-indigo-200/50" />
+                    </div>
+                    <div>
+                      <span className="inline-block text-[8px] text-indigo-600 font-extrabold uppercase tracking-widest bg-white border border-indigo-100 px-2 py-0.5 rounded-full mb-1">
+                        Chosen Pupil
+                      </span>
+                      <h4 className="text-lg font-black text-slate-800 uppercase tracking-tight">
+                        {students[selectedIdx].fullName}
+                      </h4>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <div className="p-4 bg-slate-50/50 border border-dashed border-slate-200/60 rounded-xl text-center">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">No Student Selected</p>
+                    <p className="text-[8px] text-slate-400 font-medium normal-case mt-0.5">Click "Roll" to select a random name dynamically.</p>
+                  </div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="text-[8px] font-mono font-black text-slate-400 uppercase tracking-wider text-center pt-2">
+              Grade {teacherClass}-{teacherSection} Code-Roster
+            </div>
+          </div>
+        </div>
+
       </div>
 
-      <button
-        onClick={handleSelect}
-        disabled={isSpinning || students.length === 0}
-        className="w-full bg-gradient-to-r from-[#0066CC] to-[#0055B3] hover:opacity-90 text-white py-5 rounded-2xl flex items-center justify-center gap-3 font-black text-lg uppercase tracking-widest shadow-lg transition-all disabled:opacity-50"
-      >
-        <RotateCcw className={`w-6 h-6 ${isSpinning ? 'animate-spin' : ''}`} />
-        {isSpinning ? 'Selecting...' : 'Select Student'}
-      </button>
-
-      {selectedIdx !== null && !isSpinning && students[selectedIdx] && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center p-8 bg-black/5 border border-neutral-200 rounded-2xl"
-        >
-          <p className="text-[#0066CC] text-[10px] uppercase tracking-widest font-black mb-1">Selected Student</p>
-          <h3 className="text-3xl font-black text-[#0066CC] uppercase">{students[selectedIdx].fullName}</h3>
-          <p className="text-[#57534e] font-bold text-xs mt-2 uppercase">Ready to answer your question!</p>
-        </motion.div>
-      )}
     </div>
   );
 }

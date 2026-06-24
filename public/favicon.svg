@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8B5CF6"/>
+      <stop offset="50%" stop-color="#6B6998"/>
+      <stop offset="100%" stop-color="#4F46E5"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  <!-- Background super-ellipse -->
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#g)" filter="url(#shadow)"/>
+  <rect x="48" y="48" width="416" height="416" rx="96" fill="none" stroke="#FFFFFF" stroke-opacity="0.15" stroke-width="8"/>
+  
+  <!-- Graduation Cap Icon in high fidelity white and gold -->
+  <g transform="matrix(11 0 0 11 120 110)">
+    <!-- Cap Diamond -->
+    <path d="M12 2L2 7l10 5 10-5-10-5z" fill="#FFFFFF"/>
+    <!-- Tassel / Cap base -->
+    <path d="M6 12v5c0 2.2 2.7 4 6 4s6-1.8 6-4v-5" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- Hanging tassel cord and tassel -->
+    <path d="M18 12.5v5" stroke="#FBBF24" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="18" cy="18" r="1.5" fill="#FBBF24"/>
+  </g>
+</svg>

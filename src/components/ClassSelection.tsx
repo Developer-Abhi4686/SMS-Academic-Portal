@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { School, ChevronRight, Clock, ShieldCheck, Globe, Check, ChevronDown } from 'lucide-react';
+import { School, ChevronRight, Clock, Check, ChevronDown } from 'lucide-react';
 
 import { auth } from '../lib/firebase';
 import { createClient } from '../../utils/supabase/client';
@@ -8,7 +8,7 @@ import { createClient } from '../../utils/supabase/client';
 const supabase = createClient();
 
 interface ClassSelectionProps {
-  onClassSelect: (selectedClass: string, selectedSection: string) => void;
+  onClassSelect: (userClass: string, section: string) => void;
 }
 
 const CLASSES = ['VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
@@ -47,7 +47,7 @@ function CustomSelect({ label, value, options, placeholder, disabled, onChange, 
           type="button"
           disabled={disabled}
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-full bg-white/50 border border-white/40 rounded-[2rem] p-6 text-left font-bold transition-all shadow-sm flex items-center justify-between text-lg select-none outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent ${
+          className={`w-full bg-white/50 border border-white/40 rounded-[1.5rem] sm:rounded-[2rem] p-4 sm:p-6 text-left font-bold transition-all shadow-sm flex items-center justify-between text-base sm:text-lg select-none outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent ${
             disabled 
               ? 'opacity-35 cursor-not-allowed' 
               : 'cursor-pointer hover:bg-white hover:border-accent/45 active:scale-[0.99]'
@@ -153,7 +153,6 @@ export default function ClassSelection({ onClassSelect }: ClassSelectionProps) {
       setLoading(true);
       try {
         const uid = auth.currentUser?.uid || 'temp_user';
-        // Try inserting/upserting user profile into Supabase users table, catch silently
         await supabase.from('users').upsert({
           id: uid,
           userClass: selected,
@@ -161,7 +160,7 @@ export default function ClassSelection({ onClassSelect }: ClassSelectionProps) {
           updatedAt: new Date().toISOString()
         }).select();
       } catch (error) {
-        console.warn("Could not save profile to Supabase users table:", error);
+        // Silently catch
       } finally {
         setLoading(false);
         onClassSelect(selected, section);
@@ -170,22 +169,22 @@ export default function ClassSelection({ onClassSelect }: ClassSelectionProps) {
   };
 
   return (
-    <div className="min-h-screen relative flex items-center justify-center p-6 md:p-12 overflow-hidden selection:bg-brand selection:text-white">
+    <div className="min-h-screen relative flex items-center justify-center p-4 sm:p-6 md:p-12 overflow-hidden selection:bg-brand selection:text-white pt-20">
       {/* Background Orbs - Linear gradient soft blurry blobs directly behind the glass panel */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-tr from-brand to-accent opacity-20 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] bg-gradient-to-tr from-brand to-accent opacity-20 rounded-full blur-[120px] pointer-events-none z-0" />
 
       {/* Absolute Header for Clock */}
-      <div className="absolute top-8 right-8 md:top-12 md:right-12 z-[110]">
+      <div className="absolute top-4 right-4 md:top-12 md:right-12 z-[110]">
         <StationClock />
       </div>
 
-      <div className="max-w-xl w-full relative z-10 flex flex-col items-center space-y-8">
+      <div className="w-full max-w-xl md:max-w-2xl relative z-10 flex flex-col items-center justify-center gap-6 md:gap-10">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
-          <h1 className="text-6xl md:text-7xl font-bold tracking-tighter text-primary">
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-tighter text-primary">
             SM'S <span className="text-brand">Portal.</span>
           </h1>
         </motion.div>
@@ -194,16 +193,16 @@ export default function ClassSelection({ onClassSelect }: ClassSelectionProps) {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="glass-panel p-10 md:p-14 rounded-[4rem] relative w-full"
+          className="glass-panel p-6 sm:p-10 md:p-14 rounded-[2rem] sm:rounded-[3rem] md:rounded-[4rem] relative w-full"
         >
           <div className="absolute top-0 right-0 p-8 opacity-5">
-            <School className="w-32 h-32 rotate-12" />
+            <School className="w-24 h-24 sm:w-32 sm:h-32 rotate-12" />
           </div>
 
-          <h3 className="text-2xl font-bold tracking-tight mb-10 text-primary text-center">Select class and section</h3>
+          <h3 className="text-xl sm:text-2xl font-bold tracking-tight mb-6 sm:mb-10 text-primary text-center">Select class and section</h3>
           
-          <form onSubmit={handleSubmit} className="space-y-10">
-            <div className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-10">
+            <div className="space-y-6 sm:space-y-8">
               <CustomSelect
                 label="Class"
                 value={selected}
@@ -230,7 +229,7 @@ export default function ClassSelection({ onClassSelect }: ClassSelectionProps) {
             <button
               type="submit"
               disabled={!selected || !section || loading}
-              className="w-full bg-brand text-white font-bold py-7 rounded-[2.5rem] transition-all text-[11px] uppercase tracking-[0.4em] shadow-2xl shadow-brand/20 hover:bg-brand-dark active:scale-[0.98] flex items-center justify-center gap-4 group disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none disabled:pointer-events-none cursor-pointer"
+              className="w-full bg-brand text-white font-bold py-4 sm:py-6 md:py-7 rounded-xl sm:rounded-[2.5rem] transition-all text-[11px] uppercase tracking-[0.4em] shadow-2xl shadow-brand/20 hover:bg-brand-dark active:scale-[0.98] flex items-center justify-center gap-4 group disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none disabled:pointer-events-none cursor-pointer"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-accent border-t-white rounded-full animate-spin"></div>

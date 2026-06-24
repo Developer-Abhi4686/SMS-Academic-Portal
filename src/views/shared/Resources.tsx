@@ -170,7 +170,7 @@ export default function Resources({ role, onBack, userClass }: ResourcesProps) {
                   key={res.name}
                   whileHover={{ scale: 0.98 }}
                   onClick={res.onClick}
-                  className="group bg-white p-10 rounded-[3rem] border border-[#e7e5e4] hover:border-[#1a237e] transition-all flex flex-col justify-between h-[320px] relative overflow-hidden shadow-sm hover:shadow-2xl"
+                  className="group bg-white p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] border border-[#e7e5e4] hover:border-[#1a237e] transition-all flex flex-col justify-between h-[280px] sm:h-[320px] relative overflow-hidden shadow-sm hover:shadow-2xl"
                 >
                   <div className="flex justify-between items-start relative z-10">
                     <div className="w-16 h-16 bg-[#f8f9fa] rounded-3xl flex items-center justify-center text-[#1a237e] group-hover:bg-[#1a237e] group-hover:text-white transition-all duration-500">
@@ -192,7 +192,7 @@ export default function Resources({ role, onBack, userClass }: ResourcesProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   referrerPolicy="no-referrer"
-                  className="group bg-white p-10 rounded-[3rem] border border-[#e7e5e4] hover:border-[#0066CC] transition-all flex flex-col justify-between h-[320px] relative overflow-hidden shadow-sm hover:shadow-2xl"
+                  className="group bg-white p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] border border-[#e7e5e4] hover:border-[#0066CC] transition-all flex flex-col justify-between h-[280px] sm:h-[320px] relative overflow-hidden shadow-sm hover:shadow-2xl"
                 >
                   <div className="flex justify-between items-start relative z-10">
                     <div className="w-16 h-16 bg-[#f8f9fa] rounded-3xl flex items-center justify-center text-[#0066CC] group-hover:bg-[#0066CC] group-hover:text-white transition-all duration-500">
@@ -326,19 +326,19 @@ export default function Resources({ role, onBack, userClass }: ResourcesProps) {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <button
                       onClick={() => setMathSection('I')}
-                      className="bg-white p-12 rounded-[3rem] border-2 border-[#e7e5e4] hover:border-[#0066CC] transition-all group flex flex-col items-center text-center gap-6"
+                      className="bg-white p-6 sm:p-12 rounded-[2rem] sm:rounded-[3rem] border-2 border-[#e7e5e4] hover:border-[#0066CC] transition-all group flex flex-col items-center text-center gap-4 sm:gap-6"
                     >
-                      <div className="w-20 h-20 bg-[#f8f9fa] rounded-full flex items-center justify-center text-[#0066CC] group-hover:bg-[#0066CC] group-hover:text-white transition-all shadow-inner">
-                        <BookMarked className="w-10 h-10" />
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#f8f9fa] rounded-full flex items-center justify-center text-[#0066CC] group-hover:bg-[#0066CC] group-hover:text-white transition-all shadow-inner">
+                        <BookMarked className="w-8 h-8 sm:w-10 sm:h-10" />
                       </div>
                       <div>
-                        <h3 className="text-2xl font-black uppercase tracking-tighter">Part I</h3>
+                        <h3 className="text-xl sm:text-2xl font-black uppercase tracking-tighter">Part I</h3>
                         <span className="text-[8px] font-black uppercase tracking-widest text-[#0066CC] mt-2 block italic opacity-60">8 Chapters Available</span>
                       </div>
                     </button>
                     <button
                       onClick={handleComingSoon}
-                      className="bg-white p-12 rounded-[3rem] border-2 border-[#e7e5e4] hover:border-[#57534e] transition-all group flex flex-col items-center text-center gap-6 opacity-60"
+                      className="bg-white p-6 sm:p-12 rounded-[2rem] sm:rounded-[3rem] border-2 border-[#e7e5e4] hover:border-[#57534e] transition-all group flex flex-col items-center text-center gap-4 sm:gap-6 opacity-60"
                     >
                       <div className="w-20 h-20 bg-[#f8f9fa] rounded-full flex items-center justify-center text-[#57534e] shadow-inner">
                         <Lock className="w-10 h-10" />
@@ -511,7 +511,7 @@ export default function Resources({ role, onBack, userClass }: ResourcesProps) {
                   <button
                     key={book.name}
                     onClick={book.isChapters ? () => setShowChapters(book.chapterId || book.name) : (book.link ? () => window.open(book.link, '_blank') : handleComingSoon)}
-                    className="bg-white p-10 rounded-[3rem] border border-[#e7e5e4] shadow-sm flex flex-col items-center text-center gap-6 hover:border-[#0066CC] hover:shadow-xl transition-all group"
+                    className="bg-white p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] border border-[#e7e5e4] shadow-sm flex flex-col items-center text-center gap-4 sm:gap-6 hover:border-[#0066CC] hover:shadow-xl transition-all group"
                   >
                     <div className="w-20 h-20 bg-[#f8f9fa] rounded-full flex items-center justify-center text-[#0066CC] shadow-inner group-hover:bg-[#0066CC] group-hover:text-white transition-all duration-500">
                       <Book className="w-8 h-8" />

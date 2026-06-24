@@ -8,1023 +8,703 @@ import {
   File, 
   FileText, 
   Image as ImageIcon, 
+  Folder,
+  UploadCloud,
   ChevronRight, 
   Upload, 
   Lock,
+  Unlock,
   Search,
-  MoreVertical,
   Trash2,
-  Eye,
   CheckCircle2,
   AlertCircle,
   X,
-  Smartphone,
-  Copy,
-  Check,
-  ArrowUpRight
+  Download,
+  AlertTriangle,
+  FolderOpen,
+  Info,
+  Calendar,
+  LockKeyhole,
+  Check
 } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
-import { auth } from '../../lib/firebase';
-import { supabaseStorage } from '../../lib/supabaseStorage';
-import { UserProfile } from '../../types';
+import { createClient } from '../../../utils/supabase/client';
 
-interface VaultFile {
-  id: string;
-  name: string;
-  type: string;
-  size: string;
-  uploadDate: string;
-  url?: string;
+const supabase = createClient();
+
+interface DBFile {
+  id: number;
+  created_at?: string;
+  file_name: string;
+  file_url: string;
+  class: string;
+  section: string;
 }
 
-interface Vault {
-  id: string;
-  ownerId: string;
-  name: string;
-  roleType: 'class' | 'subject';
-  subject: string;
-  passwordHash: string;
-  createdAt: string;
-}
+const CLASSES = ['VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+const SECTIONS = ['A', 'B', 'C', 'D', 'E'];
 
-export default function CloudVault({ onBack, userProfile }: { onBack?: () => void; userProfile?: UserProfile | null }) {
-  const [vaults, setVaults] = useState<Vault[]>([]);
-  const [activeVaultFiles, setActiveVaultFiles] = useState<VaultFile[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function CloudVault({ 
+  onBack,
+  defaultClass,
+  defaultSection
+}: { 
+  onBack?: () => void;
+  defaultClass?: string | null;
+  defaultSection?: string | null;
+}) {
+  // Select States
+  const [selectedClass, setSelectedClass] = useState<string>((defaultClass || '').toUpperCase());
+  const [selectedSection, setSelectedSection] = useState<string>((defaultSection || '').toUpperCase());
+  const [isUnlocked, setIsUnlocked] = useState(false);
 
-  const [isCreating, setIsCreating] = useState(false);
-  const [activeVaultId, setActiveVaultId] = useState<string | null>(null);
-  const [authNeededId, setAuthNeededId] = useState<string | null>(null);
-  
-  const [formStep, setFormStep] = useState(1);
-  const [formData, setFormData] = useState({
-    name: '',
-    roleType: 'subject' as 'class' | 'subject',
-    subject: '',
-    password: ''
-  });
+  // Files Data
+  const [files, setFiles] = useState<DBFile[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const [isAuthFirstTime, setIsAuthFirstTime] = useState(false);
-  const [passwordInput, setPasswordInput] = useState('');
-  const [authError, setAuthError] = useState(false);
+  // Upload Status
+  const [uploadProgress, setUploadProgress] = useState<string>(''); // '', 'uploading', 'db_sync', 'success', 'error'
+  const [uploadErrorMsg, setUploadErrorMsg] = useState<string>('');
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Action status
+  const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [viewingFile, setViewingFile] = useState<VaultFile | null>(null);
-  const [isReceiving, setIsReceiving] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
 
-  // Global Paste and Drop Listeners
+  // Auto-Unlock if both class and section are selected
   useEffect(() => {
-    if (!activeVaultId) return;
-
-    const handlePaste = async (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-
-      const files: File[] = [];
-      for (let i = 0; i < items.length; i++) {
-        if (items[i].kind === 'file') {
-          const file = items[i].getAsFile();
-          if (file) files.push(file);
-        }
-      }
-
-      if (files.length > 0) {
-        uploadSimulatedFiles(files);
-      }
-    };
-
-    const handleGlobalDragOver = (e: DragEvent) => {
-      e.preventDefault();
-      setIsDragging(true);
-    };
-
-    const handleGlobalDragLeave = (e: DragEvent) => {
-      e.preventDefault();
-      // Only set to false if we are leaving the window
-      if (e.relatedTarget === null) {
-        setIsDragging(false);
-      }
-    };
-
-    const handleGlobalDrop = (e: DragEvent) => {
-      e.preventDefault();
-      setIsDragging(false);
-      if (e.dataTransfer?.files) {
-        uploadSimulatedFiles(Array.from(e.dataTransfer.files));
-      }
-    };
-
-    window.addEventListener('paste', handlePaste);
-    window.addEventListener('dragover', handleGlobalDragOver);
-    window.addEventListener('dragleave', handleGlobalDragLeave);
-    window.addEventListener('drop', handleGlobalDrop);
-
-    return () => {
-      window.removeEventListener('paste', handlePaste);
-      window.removeEventListener('dragover', handleGlobalDragOver);
-      window.removeEventListener('dragleave', handleGlobalDragLeave);
-      window.removeEventListener('drop', handleGlobalDrop);
-    };
-  }, [activeVaultId]);
-
-  const uploadSimulatedFiles = async (files: File[]) => {
-    if (!activeVaultId) return;
-    
-    for (const file of files) {
-      if (file.size > 700 * 1024) {
-        alert(`File "${file.name}" is too large for secure sync. Please keep files under 700KB.`);
-        continue;
-      }
-
-      const reader = new FileReader();
-      const filePromise = new Promise<string>((resolve) => {
-        reader.onload = (event) => resolve(event.target?.result as string);
-        reader.readAsDataURL(file);
-      });
-
-      const base64Data = await filePromise;
-
-      const fileData = {
-        name: file.name || `Pasted Asset ${new Date().toLocaleTimeString()}`,
-        type: file.type || 'application/octet-stream',
-        size: (file.size / 1024).toFixed(1) + ' KB',
-        uploadDate: new Date().toISOString(),
-        url: base64Data
-      };
-
-      try {
-        await supabaseStorage.addVaultFile(activeVaultId, fileData);
-        await fetchFiles();
-      } catch (error) {
-        console.error("Failed to upload simulated file:", error);
-      }
+    if (selectedClass && selectedSection) {
+      setIsUnlocked(true);
+      fetchFiles(selectedClass, selectedSection);
+    } else {
+      setIsUnlocked(false);
+      setFiles([]);
     }
-  };
+  }, [selectedClass, selectedSection]);
 
-  // Handle Browser Navigation (Enable Back button to close modals)
-  useEffect(() => {
-    const hasOpenModal = isReceiving || !!viewingFile || isCreating || !!authNeededId;
-    
-    const handlePopState = (e: PopStateEvent) => {
-      // If we find our modal state, satisfy it by closing the modal
-      if (isReceiving) setIsReceiving(false);
-      if (viewingFile) setViewingFile(null);
-      if (isCreating) setIsCreating(false);
-      if (authNeededId) setAuthNeededId(null);
-    };
-
-    if (hasOpenModal) {
-      window.history.pushState({ modal: true }, "");
-      window.addEventListener('popstate', handlePopState);
-    }
-
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-    };
-  }, [isReceiving, viewingFile, isCreating, authNeededId]);
-
-  const fetchVaults = async () => {
-    if (!userProfile) {
-      setVaults([]);
-      setLoading(false);
-      return;
-    }
+  // Fetch files inside the 'cloud_vault' table matching class and section
+  const fetchFiles = async (cls: string, sec: string) => {
     setLoading(true);
     try {
-      const data = await supabaseStorage.getVaults(userProfile.uid, userProfile.email || '');
-      const sorted = (data || []).map((v: any) => ({
-        id: String(v.id),
-        ownerId: v.ownerId,
-        name: v.name,
-        roleType: v.roleType,
-        subject: v.subject,
-        passwordHash: v.passwordHash,
-        createdAt: v.createdAt
-      }));
-      sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setVaults(sorted);
-    } catch (error) {
-      console.error("Vault Sync Error:", error);
+      const { data, error } = await supabase
+        .from('cloud_vault')
+        .select('*')
+        .eq('class', cls)
+        .eq('section', sec)
+        .order('id', { ascending: false });
+
+      if (error) {
+        console.warn("Could not query 'cloud_vault' table:", error.message);
+        throw error;
+      }
+
+      setFiles(data || []);
+    } catch (err: any) {
+      console.error("Error reading Cloud Vault table:", err);
+      // Fallback with visual logs in interface
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchFiles = async () => {
-    if (!activeVaultId) {
-      setActiveVaultFiles([]);
-      return;
-    }
-    try {
-      const data = await supabaseStorage.getVaultFiles(activeVaultId);
-      const sorted = (data || []).map((f: any) => ({
-        id: String(f.id),
-        name: f.name,
-        type: f.type,
-        size: f.size,
-        uploadDate: f.uploadDate,
-        url: f.url
-      }));
-      sorted.sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime());
-      setActiveVaultFiles(sorted);
-    } catch (error) {
-      console.error("Files Sync Error:", error);
-    }
-  };
-
-  // Sync Vaults
-  useEffect(() => {
-    fetchVaults();
-  }, [userProfile]);
-
-  // Sync Files for Active Vault
-  useEffect(() => {
-    fetchFiles();
-  }, [activeVaultId]);
-
-  const activeVault = vaults.find(v => v.id === activeVaultId);
-
-  const handleCreateVault = async () => {
-    if (!userProfile) return;
-
-    // Check if a vault with the same details already exists for this teacher
-    const existingVault = vaults.find(v => 
-      v.name.toLowerCase() === formData.name.toLowerCase() && 
-      v.roleType === formData.roleType && 
-      v.subject.toLowerCase() === formData.subject.toLowerCase()
-    );
-
-    if (existingVault) {
-      // Matching folder found - redirect to password check for that folder
-      setIsCreating(false);
-      setFormStep(1);
-      setFormData({ name: '', roleType: 'subject', subject: '', password: '' });
-      
-      handleOpenVault(existingVault.id);
+  // Upload file pipeline
+  const handleFileProcess = async (file: File) => {
+    if (!selectedClass || !selectedSection) {
+      alert("Please specify Class and Section first.");
       return;
     }
 
-    const newVault = {
-      ownerId: userProfile.uid,
-      name: formData.name,
-      roleType: formData.roleType,
-      subject: formData.subject,
-      passwordHash: formData.password,
-      createdAt: new Date().toISOString()
-    };
-    
+    setUploadProgress('uploading');
+    setUploadErrorMsg('');
+
     try {
-      const createdVault = await supabaseStorage.addVault(newVault);
-      setIsCreating(false);
-      setFormStep(1);
-      setFormData({ name: '', roleType: 'subject', subject: '', password: '' });
-      await fetchVaults();
-      
-      // Auto-open and mark as first time (so no password check)
-      setActiveVaultId(createdVault.id);
-      setIsAuthFirstTime(true);
-    } catch (error) {
-      console.error("Failed to create vault:", error);
-    }
-  };
+      // 1. Generate unique path
+      const fileExt = file.name.split('.').pop() || 'dat';
+      const cleanName = file.name.replace(/[^\w\s.-]/g, '').replace(/\s+/g, '_');
+      const uniquePath = `${selectedClass}/${selectedSection}/${Date.now()}_${cleanName}`;
 
-  const handleOpenVault = (id: string) => {
-    setAuthNeededId(id);
-    setPasswordInput('');
-    setAuthError(false);
-  };
+      // 2. Upload to vault-files storage bucket
+      const { data: storageData, error: storageErr } = await supabase.storage
+        .from('vault-files')
+        .upload(uniquePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
-  const verifyPassword = () => {
-    const vault = vaults.find(v => v.id === authNeededId);
-    if (vault && vault.passwordHash === passwordInput) {
-      setActiveVaultId(vault.id);
-      setAuthNeededId(null);
-      setIsAuthFirstTime(false);
-    } else {
-      setAuthError(true);
-    }
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!activeVaultId || !e.target.files) return;
-    
-    const files = Array.from(e.target.files);
-    
-    for (const file of files) {
-      if (file.size > 700 * 1024) {
-        alert(`File "${file.name}" is too large for secure sync. Please keep files under 700KB.`);
-        continue;
+      if (storageErr) {
+        // Helpful tip if bucket is not created
+        if (storageErr.message?.toLowerCase().includes('bucket not found') || storageErr.message?.toLowerCase().includes('does not exist')) {
+          throw new Error("Bucket 'vault-files' not found. Please create a public storage bucket named 'vault-files' in your Supabase dashboard.");
+        }
+        throw storageErr;
       }
 
-      const reader = new FileReader();
-      const filePromise = new Promise<string>((resolve) => {
-        reader.onload = (event) => resolve(event.target?.result as string);
-        reader.readAsDataURL(file);
-      });
+      setUploadProgress('db_sync');
 
-      const base64Data = await filePromise;
+      // 3. Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from('vault-files')
+        .getPublicUrl(uniquePath);
 
-      const fileData = {
-        name: file.name,
-        type: file.type || 'application/octet-stream',
-        size: (file.size / 1024).toFixed(1) + ' KB',
-        uploadDate: new Date().toISOString(),
-        url: base64Data
-      };
+      const fileUrl = publicUrlData.publicUrl;
 
+      // 4. Save metadata to 'cloud_vault' table with actual exact columns requested
+      const { data: insertData, error: insertErr } = await supabase
+        .from('cloud_vault')
+        .insert([
+          {
+            file_name: file.name,
+            file_url: fileUrl,
+            class: selectedClass,
+            section: selectedSection
+          }
+        ])
+        .select();
+
+      if (insertErr) {
+        // Rollback storage if db sync fails
+        await supabase.storage.from('vault-files').remove([uniquePath]);
+        throw insertErr;
+      }
+
+      setUploadProgress('success');
+      setTimeout(() => {
+        setUploadProgress('');
+      }, 2000);
+
+      // Refresh current directory files
+      await fetchFiles(selectedClass, selectedSection);
+    } catch (err: any) {
+      console.error("Vault upload failed:", err);
+      setUploadErrorMsg(err.message || "Transfer suspended. Make sure bucket 'vault-files' and table 'cloud_vault' exist and are accessible.");
+      setUploadProgress('error');
+    }
+  };
+
+  const handleManualUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFileProcess(e.target.files[0]);
+    }
+  };
+
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileProcess(e.dataTransfer.files[0]);
+    }
+  };
+
+  // Deletion operation
+  const handleDelete = async (fileId: number, fileUrl: string) => {
+    if (!window.confirm("Are you sure you want to permanently delete this academic asset from the Cloud Vault?")) {
+      return;
+    }
+
+    setActionLoadingId(fileId);
+    try {
+      // 1. Delete from DB
+      const { error: dbErr } = await supabase
+        .from('cloud_vault')
+        .delete()
+        .eq('id', fileId);
+
+      if (dbErr) throw dbErr;
+
+      // 2. Safely attempt physics storage deletion
       try {
-        await supabaseStorage.addVaultFile(activeVaultId, fileData);
-      } catch (error) {
-        console.error("Failed to upload file:", error);
+        const urlMatch = fileUrl.split('/storage/v1/object/public/vault-files/');
+        if (urlMatch.length > 1) {
+          const storagePath = decodeURIComponent(urlMatch[1]);
+          await supabase.storage
+            .from('vault-files')
+            .remove([storagePath]);
+        }
+      } catch (storageErr) {
+        console.warn("Could not delete physical asset from bucket:", storageErr);
       }
-    }
-    await fetchFiles();
-    
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
 
-  const handleDeleteFile = async (fileId: string) => {
-    if (!activeVaultId) return;
-    try {
-      await supabaseStorage.deleteVaultFile(fileId);
-      await fetchFiles();
-    } catch (error) {
-      console.error("Failed to delete file:", error);
+      // Refresh files list
+      setFiles(prev => prev.filter(f => f.id !== fileId));
+    } catch (err: any) {
+      console.error("Failed to delete file:", err);
+      alert("Failed to delete from Cloud database: " + err.message);
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
-  const renderFileIcon = (type: string) => {
-    if (type.includes('image')) return <ImageIcon className="w-5 h-5 text-purple-500" />;
-    if (type.includes('pdf')) return <FileText className="w-5 h-5 text-red-500" />;
-    if (type.includes('text')) return <FileText className="w-5 h-5 text-blue-500" />;
-    return <File className="w-5 h-5 text-gray-400" />;
+  // Helpers to assign aesthetics based on extension
+  const getFileAesthetics = (fileName: string) => {
+    const ext = (fileName.split('.').pop() || '').toLowerCase();
+    switch (ext) {
+      case 'pdf':
+        return {
+          icon: <FileText className="w-6 h-6 text-red-500" />,
+          bgColor: 'bg-red-50',
+          borderColor: 'border-red-100',
+          textColor: 'text-red-700',
+          tag: 'PDF Document'
+        };
+      case 'doc':
+      case 'docx':
+        return {
+          icon: <FileText className="w-6 h-6 text-blue-500" />,
+          bgColor: 'bg-blue-50',
+          borderColor: 'border-blue-100',
+          textColor: 'text-blue-700',
+          tag: 'Word Document'
+        };
+      case 'xls':
+      case 'xlsx':
+      case 'csv':
+        return {
+          icon: <File className="w-6 h-6 text-emerald-500" />,
+          bgColor: 'bg-emerald-50',
+          borderColor: 'border-emerald-100',
+          textColor: 'text-emerald-700',
+          tag: 'Spreadsheet'
+        };
+      case 'ppt':
+      case 'pptx':
+        return {
+          icon: <FileText className="w-6 h-6 text-amber-500" />,
+          bgColor: 'bg-amber-50',
+          borderColor: 'border-amber-100',
+          textColor: 'text-amber-700',
+          tag: 'Presentation'
+        };
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+      case 'svg':
+        return {
+          icon: <ImageIcon className="w-6 h-6 text-purple-500" />,
+          bgColor: 'bg-purple-50',
+          borderColor: 'border-purple-100',
+          textColor: 'text-purple-700',
+          tag: 'Image Asset'
+        };
+      default:
+        return {
+          icon: <File className="w-6 h-6 text-slate-500" />,
+          bgColor: 'bg-slate-50',
+          borderColor: 'border-slate-100',
+          textColor: 'text-slate-700',
+          tag: 'Academic Resource'
+        };
+    }
   };
 
-  if (activeVaultId && activeVault) {
-    return (
-      <div className="max-w-5xl mx-auto h-full flex flex-col">
-        {/* Vault Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
+  // Query filtering
+  const filteredFiles = files.filter(f => 
+    f.file_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="max-w-6xl mx-auto pb-12 selection:bg-accent/10">
+      {/* 1. Header Area with macOS back button and title */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 mt-4">
+        <div className="flex items-center gap-4">
+          {onBack && (
             <button 
-              onClick={() => {
-                setActiveVaultId(null);
-                setIsAuthFirstTime(false);
-              }}
-              className="p-2 -ml-2 text-accent hover:bg-accent/10 rounded-xl transition-colors"
+              onClick={onBack}
+              className="p-2.5 bg-white border border-slate-200/65 rounded-xl shadow-sm hover:shadow-md hover:bg-slate-50 active:scale-95 transition-all cursor-pointer text-slate-700"
+              title="Return Home"
             >
-              <ArrowLeft className="w-6 h-6" />
+              <ArrowLeft className="w-5 h-5" />
             </button>
-            <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20 shadow-sm">
-              <FolderLock className="w-6 h-6 text-accent" />
-            </div>
-            <div>
-              <h1 className="text-xl font-black text-primary uppercase tracking-tight">{activeVault.name}</h1>
-              <p className="text-muted text-[10px] font-bold uppercase tracking-widest">
-                {activeVault.roleType === 'class' ? 'Class Teacher' : 'Subject Teacher'} &bull; {activeVault.subject}
-              </p>
-            </div>
+          )}
+          <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center border border-accent/20 shadow-sm animate-pulse-slow">
+            <FolderLock className="w-6 h-6 text-accent" />
           </div>
-
-          <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 text-emerald-400 rounded-full border border-emerald-500/20 text-[10px] font-black uppercase tracking-widest">
-            <ShieldCheck className="w-3 h-3" />
-            End-to-End Encrypted
+          <div>
+            <h1 className="text-2xl font-black text-primary uppercase tracking-tight">Cloud Storage</h1>
+            <p className="text-muted text-[11px] font-bold uppercase tracking-widest mt-0.5">Online storage for files and resources</p>
           </div>
-          
-          <button 
-            onClick={() => setIsReceiving(true)}
-            className="flex items-center gap-3 px-6 py-3 bg-surface border-2 border-emerald-500 text-emerald-500 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/10 hover:-translate-y-1 transition-all"
-          >
-            <Smartphone className="w-4 h-4" />
-            Receive from Mobile
-          </button>
         </div>
 
-        {/* File Content Area */}
-        <div className={`flex-1 min-h-[400px] flex flex-col transition-all relative ${isDragging ? 'scale-[0.98]' : ''}`}>
-          {/* Drag Overlay */}
+        <div className="flex items-center gap-2.5 px-4 py-2.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100/80 text-[10px] font-black uppercase tracking-widest shadow-sm">
+          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+          Secure Connection Active
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* 2. Left side: Directory Shelf selectors */}
+        <div className="lg:col-span-4 space-y-6">
+          <div className="bg-white/80 backdrop-blur-md rounded-[2rem] border border-slate-100 p-6 md:p-8 shadow-[0_15px_50px_rgba(30,30,60,0.03)] space-y-6">
+            <div className="flex items-center gap-2.5 pb-2 border-b border-slate-100">
+              <FolderOpen className="w-5 h-5 text-accent" />
+              <h3 className="text-sm font-black uppercase tracking-wider text-slate-700">Select Folder</h3>
+            </div>
+
+            {/* Class selection matrix */}
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-muted uppercase tracking-[0.22em] ml-1">
+                Class
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {CLASSES.map((cls) => {
+                  const isActive = selectedClass === cls;
+                  return (
+                    <button
+                      key={cls}
+                      onClick={() => {
+                        setSelectedClass(cls);
+                        if (!selectedSection) {
+                          // select default section for ease of access
+                          setSelectedSection('A');
+                        }
+                      }}
+                      className={`py-3 px-2 rounded-xl text-xs font-black uppercase transition-all duration-200 cursor-pointer ${
+                        isActive
+                          ? 'bg-accent text-white shadow-lg shadow-accent/10 border-none'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-100/50'
+                      }`}
+                    >
+                      Class {cls}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Section selector shelf */}
+            <div className="space-y-3 pt-2">
+              <label className="text-[10px] font-black text-muted uppercase tracking-[0.22em] ml-1">
+                Classroom Section
+              </label>
+              <div className="grid grid-cols-5 gap-2">
+                {SECTIONS.map((sec) => {
+                  const isActive = selectedSection === sec;
+                  return (
+                    <button
+                      key={sec}
+                      onClick={() => setSelectedSection(sec)}
+                      className={`py-3 px-2 rounded-xl text-xs font-black uppercase transition-all duration-200 cursor-pointer ${
+                        isActive
+                          ? 'bg-accent text-white shadow-lg shadow-accent/10 border-none'
+                          : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-100/50'
+                      }`}
+                    >
+                      Sec {sec}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Locker state lock graphic */}
+            <div className="pt-4 flex flex-col items-center justify-center p-6 bg-slate-50/70 border border-slate-100 rounded-2xl relative overflow-hidden">
+              <AnimatePresence mode="wait">
+                {isUnlocked ? (
+                  <motion.div
+                    key="unlocked-state"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.8, opacity: 0 }}
+                    className="flex flex-col items-center text-center"
+                  >
+                    <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 mb-3 shadow-inner">
+                      <Unlock className="w-5 h-5" />
+                    </div>
+                    <span className="text-xs font-black uppercase tracking-wider text-emerald-700">Storage Unlocked</span>
+                    <span className="text-[9px] font-medium text-slate-400 mt-1 uppercase">Folder: Class {selectedClass} - {selectedSection}</span>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="locked-state"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.8, opacity: 0 }}
+                    className="flex flex-col items-center text-center"
+                  >
+                    <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 mb-3 shadow-inner animate-pulse">
+                      <LockKeyhole className="w-5 h-5" />
+                    </div>
+                    <span className="text-xs font-black uppercase tracking-wider text-amber-800">Locked</span>
+                    <span className="text-[9px] font-bold text-slate-400 mt-1 uppercase max-w-[200px] leading-relaxed">
+                      Please select a Class and Section above to view files.
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Right side: Files explorer and Upload panels */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Upload Pipeline Box */}
           <AnimatePresence>
-            {isDragging && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 z-50 bg-accent/20 backdrop-blur-sm border-4 border-dashed border-accent rounded-[3rem] flex flex-col items-center justify-center"
+            {isUnlocked && (
+              <motion.div
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 15 }}
+                className="bg-white/80 backdrop-blur-md rounded-[2rem] border border-slate-100 p-6 md:p-8 shadow-[0_15px_50px_rgba(30,30,60,0.03)]"
               >
-                <div className="w-20 h-20 bg-surface rounded-[2rem] flex items-center justify-center shadow-2xl mb-4">
-                  <Upload className="w-10 h-10 text-accent animate-bounce" />
+                <div className="flex items-center gap-2.5 pb-4 border-b border-slate-100 mb-6">
+                  <Upload className="w-5 h-5 text-accent" />
+                  <h3 className="text-sm font-black uppercase tracking-wider text-slate-700">Drop & Upload Academic Asset</h3>
                 </div>
-                <p className="text-xl font-black text-primary uppercase tracking-tighter">Release to Receive</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-primary/60 opacity-60">Asset will be encrypted instantly</p>
+
+                {/* Upload drag drop zone */}
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-[2rem] p-8 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 relative overflow-hidden group ${
+                    isDragging 
+                      ? 'border-accent bg-accent/5 scale-[0.98]' 
+                      : 'border-slate-200 hover:border-accent hover:bg-slate-50/50'
+                  }`}
+                >
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleManualUpload}
+                    className="hidden"
+                  />
+
+                  {/* Cloud dynamic uploading statuses */}
+                  {uploadProgress === 'uploading' ? (
+                    <div className="space-y-4 py-4">
+                      <div className="w-14 h-14 bg-accent/10 border border-accent/20 rounded-full flex items-center justify-center text-accent animate-spin mx-auto">
+                        <UploadCloud className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-wider text-accent">[Phase 1/2] Syncing to Supabase...</p>
+                        <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">Uploading payload to physical cloud bucket</p>
+                      </div>
+                    </div>
+                  ) : uploadProgress === 'db_sync' ? (
+                    <div className="space-y-4 py-4">
+                      <div className="w-14 h-14 bg-emerald-100 border border-emerald-200 rounded-full flex items-center justify-center text-emerald-600 animate-pulse mx-auto">
+                        <CheckCircle2 className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-wider text-emerald-700">[Phase 2/2] Recording index...</p>
+                        <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">Saving public URL to cloud_vault directory table</p>
+                      </div>
+                    </div>
+                  ) : uploadProgress === 'success' ? (
+                    <div className="space-y-3 py-4">
+                      <motion.div 
+                        initial={{ scale: 0.5, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="w-14 h-14 bg-emerald-500 rounded-full flex items-center justify-center text-white mx-auto shadow-lg shadow-emerald-500/20"
+                      >
+                        <Check className="w-7 h-7 stroke-[3px]" />
+                      </motion.div>
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-wider text-emerald-600">Asset Securely Mounted!</p>
+                        <p className="text-[10px] font-medium text-slate-400 mt-1 uppercase">File URL linked inside vault directory</p>
+                      </div>
+                    </div>
+                  ) : uploadProgress === 'error' ? (
+                    <div className="space-y-4 py-4 max-w-lg">
+                      <div className="w-14 h-14 bg-red-100 border border-red-200 rounded-full flex items-center justify-center text-red-600 mx-auto">
+                        <AlertTriangle className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-wider text-red-600">Sync Intervention Triggered</p>
+                        <p className="text-[10px] font-bold text-red-700/80 mt-1 uppercase bg-red-50/50 p-3 rounded-xl border border-red-100/60 leading-relaxed text-center">
+                          {uploadErrorMsg}
+                        </p>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setUploadProgress('');
+                          }}
+                          className="mt-3 px-4 py-1.5 bg-slate-100 text-slate-600 text-[9px] font-black uppercase tracking-widest rounded-lg hover:bg-slate-200 transition-colors"
+                        >
+                          Dismiss Alert
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="w-14 h-14 bg-slate-100 group-hover:bg-accent/10 group-hover:text-accent group-hover:scale-115 text-slate-500 rounded-2xl flex items-center justify-center mb-4 transition-all duration-300 border border-slate-200/40">
+                        <UploadCloud className="w-6 h-6" />
+                      </div>
+                      <h4 className="text-sm font-black text-slate-700 uppercase tracking-tight mb-1">
+                        Select or Drag & Drop File
+                      </h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest max-w-xs leading-relaxed">
+                        Supports PDFs, syllabus, presentation papers, assignments (<span className="text-accent">vault-files</span> storage bin)
+                      </p>
+                    </>
+                  )}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {activeVaultFiles.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-[3rem] bg-surface/30">
-              <div className="w-24 h-24 bg-surface rounded-3xl flex items-center justify-center shadow-sm border border-white/5 mb-6">
-                <Upload className="w-10 h-10 text-accent opacity-40" />
-              </div>
-              <p className="text-lg font-black text-primary uppercase tracking-tight mb-2">Vault is Empty</p>
-              <p className="text-sm text-muted font-medium opacity-60 mb-8 max-w-xs text-center">
-                Securely upload your first document. Supports Wi-Fi, Bluetooth & AirDrop.
-              </p>
-              
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-3 px-10 py-5 bg-accent text-white rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-accent/20 hover:-translate-y-1 transition-all"
-              >
-                <Plus className="w-5 h-5" />
-                Select / Receive Files
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {activeVaultFiles.map((file, idx) => (
-                  <motion.div
-                    key={file.id}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: idx * 0.05 }}
-                    onClick={() => setViewingFile(file)}
-                    className="bg-surface p-5 rounded-3xl border border-white/5 flex items-center gap-4 group hover:border-accent transition-all cursor-pointer shadow-sm hover:shadow-md"
-                  >
-                    <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center shrink-0 group-hover:bg-accent/10 transition-colors">
-                      {renderFileIcon(file.type)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-primary truncate">{file.name}</p>
-                      <p className="text-[9px] font-black uppercase text-muted mt-0.5">
-                        {file.size} &bull; {new Date(file.uploadDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteFile(file.id);
-                      }}
-                      className="p-2 text-muted opacity-0 group-hover:opacity-100 hover:text-red-400 transition-all font-bold"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </motion.div>
-                ))}
+          {/* Directory Files Manager */}
+          <div className="bg-white/80 backdrop-blur-md rounded-[2rem] border border-slate-100 p-6 md:p-8 shadow-[0_15px_50px_rgba(30,30,60,0.03)] min-h-[400px] flex flex-col">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100 mb-6">
+              <div className="flex items-center gap-2.5">
+                <Folder className="w-5 h-5 text-accent" />
+                <h3 className="text-sm font-black uppercase tracking-wider text-slate-700">
+                  {isUnlocked ? `Class ${selectedClass}-${selectedSection} Storage Index` : 'Encrypted Directory Manager'}
+                </h3>
               </div>
 
-              <div className="flex justify-center pt-12">
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-3 px-10 py-5 bg-surface border border-white/10 text-accent rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-sm hover:shadow-md hover:bg-slate-800 transition-all"
-                >
-                  <Plus className="w-5 h-5" />
-                  Add Assets
-                </button>
-              </div>
-            </div>
-          )}
-          <div className="flex items-center gap-3 mt-6">
-            <div className="flex-1 h-[1px] bg-border-subtle" />
-            <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-muted opacity-40">
-              <CheckCircle2 className="w-3 h-3" />
-              Direct Paste & Drop Supported
-            </div>
-            <div className="flex-1 h-[1px] bg-border-subtle" />
-          </div>
-        </div>
-
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          className="hidden" 
-          multiple
-          onChange={handleFileUpload}
-        />
-
-        {/* QR Receive Modal */}
-        <AnimatePresence>
-          {isReceiving && (
-            <div 
-              className="fixed inset-0 z-[400] flex items-center justify-center p-6 bg-black/60 backdrop-blur-md cursor-pointer"
-              onClick={() => setIsReceiving(false)}
-            >
-              <motion.div 
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-surface w-full max-w-md rounded-[3rem] overflow-hidden shadow-2xl p-8 flex flex-col items-center cursor-default border border-border-subtle"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="w-full flex justify-end mb-4">
-                  <button onClick={() => setIsReceiving(false)} className="p-2 hover:bg-white/5 rounded-full transition-colors text-primary">
-                    <X className="w-6 h-6" />
-                  </button>
-                </div>
-
-                <div className="w-20 h-20 bg-emerald-500/10 rounded-[2rem] flex items-center justify-center text-emerald-500 mb-6">
-                  <Smartphone className="w-10 h-10" />
-                </div>
-                
-                <h3 className="text-2xl font-black uppercase tracking-tighter text-primary mb-2">Wireless Drop</h3>
-                <p className="text-center text-xs text-muted font-medium opacity-60 mb-8 max-w-xs">
-                  Scan this code on another device to securely push files directly to this vault session.
-                </p>
-
-                <div className="p-6 bg-white border-8 border-background rounded-[3rem] shadow-inner mb-8">
-                  <QRCodeSVG 
-                    value={`${window.location.origin}/#/drop/${activeVaultId}`}
-                    size={200}
-                    level="H"
+              {isUnlocked && files.length > 0 && (
+                <div className="relative max-w-xs w-full">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                    <Search className="w-4 h-4" />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search folder..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200/60 rounded-xl pl-9 pr-4 py-2 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-accent/20 focus:bg-white outline-none transition-all placeholder:text-slate-400"
                   />
                 </div>
- 
-                <div className="w-full space-y-4">
-                  <button 
-                    onClick={() => {
-                      const link = `${window.location.origin}/#/drop/${activeVaultId}`;
-                      navigator.clipboard.writeText(link);
-                      setCopiedLink(true);
-                      setTimeout(() => setCopiedLink(false), 2000);
-                    }}
-                    className="w-full py-4 bg-background border border-white/10 rounded-2xl flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-widest text-accent hover:bg-white transition-all shadow-sm"
-                  >
-                    {copiedLink ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    {copiedLink ? 'Link Copied' : 'Copy Direct Link'}
-                  </button>
-                  
-                  <p className="text-[10px] font-black uppercase text-accent text-center tracking-widest opacity-40">
-                    Works over Wi-Fi, Bluetooth & Mobile Data
-                  </p>
-                </div>
-              </motion.div>
+              )}
             </div>
-          )}
-        </AnimatePresence>
 
-        {/* File Preview Modal */}
-        <AnimatePresence>
-          {viewingFile && (
-            <div 
-              className="fixed inset-0 z-[300] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm cursor-pointer"
-              onClick={() => setViewingFile(null)}
-            >
-              <motion.div 
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-surface w-full max-w-4xl max-h-[90vh] rounded-[3rem] overflow-hidden shadow-2xl flex flex-col cursor-default border border-border-subtle"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="p-6 border-b border-white/10 flex items-center justify-between bg-surface shrink-0">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-background flex items-center justify-center">
-                      {renderFileIcon(viewingFile.type)}
-                    </div>
-                    <div>
-                      <h3 className="text-xs font-black uppercase tracking-tight text-primary">{viewingFile.name}</h3>
-                      <p className="text-[9px] font-bold text-muted opacity-60 uppercase">{viewingFile.type} &bull; {viewingFile.size}</p>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => setViewingFile(null)}
-                    className="p-3 hover:bg-white/5 rounded-full transition-colors"
-                  >
-                    <X className="w-6 h-6" />
-                  </button>
+            {/* Content states */}
+            {!isUnlocked ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                <div className="w-20 h-20 bg-slate-50 border border-slate-100 rounded-[2rem] flex items-center justify-center text-slate-300 shadow-sm mb-4 animate-pulse">
+                  <FolderLock className="w-10 h-10" />
                 </div>
-                
-                <div className="flex-1 overflow-auto bg-background p-8 flex flex-col items-center justify-center min-h-[400px]">
-                  {viewingFile.url ? (
-                    <>
-                      <div className="flex-1 flex items-center justify-center w-full">
-                        {viewingFile.type.includes('image') ? (
-                          <img 
-                            src={viewingFile.url} 
-                            alt={viewingFile.name} 
-                            className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-xl border border-white/5"
-                          />
-                        ) : viewingFile.type.includes('video') ? (
-                          <video 
-                            src={viewingFile.url} 
-                            controls 
-                            className="max-w-full max-h-[80vh] rounded-2xl shadow-xl border border-white/5"
-                          />
-                        ) : viewingFile.type.includes('audio') ? (
-                          <div className="w-full max-w-md bg-surface p-8 rounded-[2rem] shadow-xl border border-white/10 flex flex-col items-center">
-                            <div className="w-20 h-20 bg-accent/10 rounded-full flex items-center justify-center text-accent mb-6">
-                              <File className="w-10 h-10" />
-                            </div>
-                            <audio src={viewingFile.url} controls className="w-full" />
-                            <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-accent opacity-40">Audio Track Loaded</p>
-                          </div>
-                        ) : viewingFile.type.includes('pdf') || viewingFile.type.includes('text') ? (
-                          <iframe 
-                            src={viewingFile.url} 
-                            className="w-full h-full min-h-[500px] border-0 rounded-2xl shadow-lg bg-white"
-                            title="file-preview"
-                          />
-                        ) : (
-                          <div className="text-center p-12 bg-surface rounded-[3rem] shadow-xl border border-white/10 max-w-md w-full">
-                            <div className="w-24 h-24 bg-accent/10 rounded-[2.5rem] flex items-center justify-center shadow-inner mx-auto mb-6">
-                              <File className="w-12 h-12 text-accent opacity-40" />
-                            </div>
-                            <h4 className="text-xl font-black text-primary uppercase tracking-tighter mb-3">Asset Viewer</h4>
-                            <p className="text-sm text-muted font-medium opacity-60 mb-2 mx-auto px-4">
-                              Direct preview is unavailable for <span className="font-bold text-accent">{viewingFile.type.split('/')[1] || 'this'}</span> files.
-                            </p>
-                          </div>
-                        )}
-                      </div>
- 
-                      <div className="mt-8">
-                        <button 
-                          onClick={() => {
-                            const newTab = window.open();
-                            if (newTab) {
-                              newTab.document.title = viewingFile.name;
-                              if (viewingFile.type.includes('image')) {
-                                newTab.document.write(`
-                                  <body style="margin:0;display:flex;align-items:center;justify-content:center;background:#0f172a;">
-                                    <img src="${viewingFile.url}" style="max-width:100%;max-height:100vh;object-fit:contain;">
-                                  </body>
-                                `);
-                              } else if (viewingFile.type.includes('pdf')) {
-                                newTab.document.write(`
-                                  <body style="margin:0;height:100vh;overflow:hidden;">
-                                    <embed src="${viewingFile.url}" width="100%" height="100%" type="application/pdf">
-                                  </body>
-                                `);
-                              } else if (viewingFile.type.includes('video')) {
-                                newTab.document.write(`
-                                  <body style="margin:0;display:flex;align-items:center;justify-content:center;background:#000;">
-                                    <video src="${viewingFile.url}" controls autoplay style="max-width:100%;max-height:100vh;"></video>
-                                  </body>
-                                `);
-                              } else {
-                                newTab.document.write(`
-                                  <body style="margin:0;height:100vh;overflow:hidden;">
-                                    <iframe src="${viewingFile.url}" width="100%" height="100%" style="border:none;"></iframe>
-                                  </body>
-                                `);
-                              }
-                              newTab.document.close();
-                            }
-                          }}
-                          className="flex items-center gap-3 px-12 py-5 bg-accent text-white rounded-full font-black text-xs uppercase tracking-widest shadow-xl shadow-accent/20 hover:-translate-y-1 transition-all"
-                        >
-                          <ArrowUpRight className="w-4 h-4" />
-                          View in New Tab
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-center p-12">
-                      <div className="w-24 h-24 bg-surface rounded-[2rem] flex items-center justify-center shadow-xl border border-white/5 mx-auto mb-6">
-                        <Lock className="w-10 h-10 text-accent" />
-                      </div>
-                      <p className="text-lg font-black text-primary uppercase tracking-tighter mb-2">Asset Session Expired</p>
-                      <p className="text-sm text-muted font-medium opacity-60 max-w-sm mx-auto">
-                        For security, temporary local preview links expire when you leave the portal. Please re-upload for this session.
-                      </p>
-                    </div>
-                  )}
-                </div>
- 
-                <div className="p-6 border-t border-white/10 bg-surface shrink-0 flex justify-center gap-4">
-                  {viewingFile.url && (
-                    <a 
-                      href={viewingFile.url} 
-                      download={viewingFile.name}
-                      className="px-8 py-4 bg-accent text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-accent/20 hover:-translate-y-0.5 transition-all"
+                <h4 className="text-base font-black text-slate-600 uppercase tracking-tight mb-1.5">Locker Not Initialized</h4>
+                <p className="text-xs text-slate-400 font-medium max-w-sm leading-relaxed mb-6">
+                  Mount the physical directories on the left panel to browse database records and view files.
+                </p>
+                <div className="flex flex-wrap justify-center gap-2 max-w-md">
+                  {CLASSES.slice(3, 7).map(c => (
+                    <button
+                      key={c}
+                      onClick={() => {
+                        setSelectedClass(c);
+                        setSelectedSection('A');
+                      }}
+                      className="px-4 py-2 bg-slate-100/80 hover:bg-slate-200 text-slate-600 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer"
                     >
-                      Download Document
-                    </a>
-                  )}
-                  <button 
-                    onClick={() => setViewingFile(null)}
-                    className="px-8 py-4 bg-background border border-white/10 text-primary rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white hover:text-primary transition-all"
-                  >
-                    Close Preview
-                  </button>
+                      Class {c}-A
+                    </button>
+                  ))}
                 </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
-      </div>
-    );
-  }
+              </div>
+            ) : loading ? (
+              <div className="flex-1 flex flex-col items-center justify-center py-20">
+                <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-[10px] font-black uppercase text-accent mt-3 tracking-widest">Querying Cloud Records...</p>
+              </div>
+            ) : files.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-slate-100 rounded-3xl bg-slate-50/20">
+                <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mb-4 border border-slate-200/45">
+                  <FolderOpen className="w-8 h-8 opacity-40" />
+                </div>
+                <h4 className="text-sm font-black text-slate-600 uppercase tracking-tight mb-1">Directory is Empty</h4>
+                <p className="text-xs text-slate-400 font-medium max-w-xs leading-relaxed">
+                  No files registered for <span className="font-bold text-accent">Class {selectedClass}-{selectedSection}</span> inside 'cloud_vault'. Drop your first file to upload it.
+                </p>
+              </div>
+            ) : filteredFiles.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center py-12">
+                <p className="text-xs font-black text-slate-500 uppercase">No query matches found</p>
+                <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">Try checking spelling or resetting filter field</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+                  <Info className="w-3.5 h-3.5 text-accent" />
+                  Showing {filteredFiles.length} file{filteredFiles.length > 1 ? 's' : ''} index entries with physical asset locations
+                </div>
 
-  return (
-    <div className="max-w-6xl mx-auto">
-      {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-          <div className="flex items-center gap-4">
-            {onBack && (
-              <button 
-                onClick={onBack}
-                className="p-2 -ml-2 text-accent hover:bg-accent/10 rounded-xl transition-colors"
-              >
-                <ArrowLeft className="w-6 h-6" />
-              </button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredFiles.map((file) => {
+                    const aesthetics = getFileAesthetics(file.file_name);
+                    const isDeletingThis = actionLoadingId === file.id;
+
+                    return (
+                      <motion.div
+                        key={file.id}
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.98 }}
+                        className="bg-white p-5 rounded-[1.751rem] border border-slate-100 flex items-start gap-4 transition-all duration-200 hover:shadow-lg hover:border-slate-200 relative group"
+                      >
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${aesthetics.borderColor} ${aesthetics.bgColor}`}>
+                          {aesthetics.icon}
+                        </div>
+
+                        <div className="min-w-0 flex-1 pr-6">
+                          <h4 
+                            className="text-xs font-black text-slate-700 truncate cursor-pointer hover:text-accent transition-colors block"
+                            title={file.file_name}
+                            onClick={() => window.open(file.file_url, '_blank')}
+                          >
+                            {file.file_name}
+                          </h4>
+                          <span className={`inline-block text-[9px] font-black uppercase px-2 py-0.5 mt-1.5 rounded-md ${aesthetics.bgColor} ${aesthetics.textColor}`}>
+                            {aesthetics.tag}
+                          </span>
+                          <div className="flex items-center gap-2.5 text-[9px] font-bold text-slate-400 uppercase mt-2">
+                            <Calendar className="w-3.5 h-3.5" />
+                            <span>
+                              {file.created_at ? new Date(file.created_at).toLocaleDateString(undefined, {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric'
+                              }) : 'Just uploaded'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="absolute right-4 top-4 flex items-center gap-2">
+                          <a
+                            href={file.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1.5 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-accent rounded-lg border border-slate-100 transition-colors"
+                            title="Direct download/view"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </a>
+                          <button
+                            disabled={isDeletingThis}
+                            onClick={() => handleDelete(file.id, file.file_url)}
+                            className="p-1.5 bg-red-50 hover:bg-red-100 text-red-400 hover:text-red-600 rounded-lg border border-red-50 transition-colors cursor-pointer"
+                            title="Remove file"
+                          >
+                            {isDeletingThis ? (
+                              <div className="w-3.5 h-3.5 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
-            <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center border border-accent/20 shadow-sm">
-              <FolderLock className="w-6 h-6 text-accent" />
-            </div>
-            <div>
-              <h1 className="text-xl font-black text-primary uppercase tracking-tight">Academic Cloud</h1>
-              <p className="text-muted text-[11px] font-bold uppercase tracking-widest">End-to-end encrypted personal storage.</p>
-            </div>
-          </div>
-
-          <button 
-            onClick={() => setIsCreating(true)}
-            className="flex items-center justify-center gap-3 px-8 py-4 bg-accent text-white rounded-full font-black text-xs uppercase tracking-widest shadow-xl shadow-accent/20 hover:-translate-y-1 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            Add Subject Folder
-          </button>
-        </div>
-
-      {/* Loading State or Stats */}
-      {loading ? (
-        <div className="flex items-center justify-center py-24">
-          <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="p-6 bg-surface rounded-[2rem] border border-white/5">
-            <p className="text-[10px] font-black uppercase text-muted opacity-40 mb-1">Active Vaults</p>
-            <p className="text-3xl font-black tracking-tighter text-accent">{vaults.length}</p>
-          </div>
-          <div className="p-6 bg-surface rounded-[2rem] border border-white/5">
-            <p className="text-[10px] font-black uppercase text-muted opacity-40 mb-1">Security Status</p>
-            <div className="flex items-center gap-2 mt-2">
-              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-              <p className="text-sm font-bold text-emerald-500">Fully Encrypted</p>
-            </div>
-          </div>
-          <div className="p-6 bg-surface rounded-[2rem] border border-white/5 flex items-center justify-center">
-             <p className="text-[9px] font-black uppercase tracking-widest text-muted opacity-40 text-center">
-               Personal Storage Active
-             </p>
           </div>
         </div>
-      )}
-
-      {/* Vault List */}
-      {!loading && (
-        vaults.length === 0 ? (
-          <div className="text-center py-24 bg-surface/50 rounded-[3rem] border border-dashed border-white/10">
-            <FolderLock className="w-16 h-16 text-accent opacity-5 mx-auto mb-6" />
-            <h3 className="text-lg font-black uppercase tracking-tight text-primary mb-2">No Vaults Initialized</h3>
-            <p className="text-sm text-muted font-medium opacity-60 max-w-xs mx-auto">
-              Your secure storage space is empty. Create your first vault to protect academic assets.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {vaults.map((vault, idx) => (
-              <motion.div
-                key={vault.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                onClick={() => handleOpenVault(vault.id)}
-                className="group relative bg-surface border border-white/5 rounded-[2.5rem] p-8 text-left transition-all hover:shadow-xl hover:-translate-y-1 cursor-pointer overflow-hidden border-b-4 border-b-accent/10"
-              >
-                <div className="flex justify-between items-start mb-6">
-                  <div className="w-14 h-14 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
-                    <FolderLock className="w-7 h-7" />
-                  </div>
-                </div>
-                
-                <h3 className="text-xl font-black uppercase tracking-tighter text-primary mb-1">
-                  {vault.name}
-                </h3>
-                <p className="text-muted text-[10px] font-black uppercase tracking-[0.1em] opacity-60 mb-6">
-                  {vault.subject} &bull; {new Date(vault.createdAt).toLocaleDateString()}
-                </p>
-
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-accent">
-                  <span>Unlock Vault</span>
-                  <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                </div>
-
-                {/* Decorative Password Hint Icon */}
-                <Lock className="absolute top-4 right-4 w-4 h-4 text-accent opacity-10" />
-              </motion.div>
-            ))}
-          </div>
-        )
-      )}
-
-      {/* Create Vault Modal */}
-      <AnimatePresence>
-        {isCreating && (
-          <div 
-            className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-background/80 backdrop-blur-md cursor-pointer"
-            onClick={() => {
-              setIsCreating(false);
-              setFormStep(1);
-            }}
-          >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-surface w-full max-w-md rounded-[3rem] overflow-hidden shadow-2xl relative cursor-default border border-white/10"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-8 pb-0 flex justify-between items-start">
-                <div className="w-12 h-12 bg-accent/10 rounded-2xl flex items-center justify-center text-accent">
-                  <Plus className="w-6 h-6" />
-                </div>
-                <button 
-                  onClick={() => {
-                    setIsCreating(false);
-                    setFormStep(1);
-                  }}
-                  className="p-2 text-muted hover:bg-white/5 rounded-full"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="p-8">
-                <h3 className="text-2xl font-black uppercase tracking-tighter text-primary mb-1">
-                  Initialize Vault
-                </h3>
-                <p className="text-muted text-[11px] font-bold uppercase tracking-widest opacity-60 mb-2">
-                  Step {formStep} of 2 &bull; Security Configuration
-                </p>
-                <p className="text-[9px] font-black uppercase text-accent mb-8 bg-accent/10 py-2 px-4 rounded-lg inline-block">
-                   End-to-End Encrypted Transfers
-                </p>
-
-                {formStep === 1 ? (
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-accent">Teacher's Name</label>
-                      <input 
-                        type="text" 
-                        placeholder="Teacher's Name"
-                        className="w-full bg-background border border-white/10 rounded-2xl px-5 py-4 text-sm font-medium focus:ring-2 focus:ring-accent/20 outline-none transition-all text-primary placeholder:text-muted/30"
-                        value={formData.name}
-                        onChange={(e) => setFormData({...formData, name: e.target.value})}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase tracking-widest text-accent">Teacher Role Type</label>
-                       <div className="grid grid-cols-2 gap-3">
-                          <button 
-                             onClick={() => setFormData({...formData, roleType: 'class'})}
-                             className={`p-4 border-2 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] transition-all ${formData.roleType === 'class' ? 'border-accent bg-accent/10 text-accent' : 'border-white/5 text-muted'}`}
-                          >
-                             Class Teacher
-                          </button>
-                          <button 
-                             onClick={() => setFormData({...formData, roleType: 'subject'})}
-                             className={`p-4 border-2 rounded-2xl text-[10px] font-black uppercase tracking-[0.1em] transition-all ${formData.roleType === 'subject' ? 'border-accent bg-accent/10 text-accent' : 'border-white/5 text-muted'}`}
-                          >
-                             Subject Teacher
-                          </button>
-                       </div>
-                    </div>
-
-                    <div className="space-y-2">
-                       <label className="text-[10px] font-black uppercase tracking-widest text-accent">Academic Subject</label>
-                       <input 
-                         type="text" 
-                         placeholder="Enter the subject you teach"
-                         className="w-full bg-background border border-white/10 rounded-2xl px-5 py-4 text-sm font-medium focus:ring-2 focus:ring-accent/20 outline-none transition-all text-primary placeholder:text-muted/30"
-                         value={formData.subject}
-                         onChange={(e) => setFormData({...formData, subject: e.target.value})}
-                       />
-                    </div>
-
-                    <button 
-                      disabled={!formData.name || !formData.subject}
-                      onClick={() => setFormStep(2)}
-                      className="w-full py-5 bg-accent text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl disabled:opacity-30 transition-all flex items-center justify-center gap-2"
-                    >
-                      Next Phase
-                      <ChevronRight className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    <div className="bg-amber-500/10 border border-amber-500/20 p-4 rounded-2xl flex gap-3 text-amber-500">
-                      <Lock className="w-5 h-5 shrink-0" />
-                      <p className="text-[10px] font-bold leading-relaxed">
-                        Secure your vault with a robust password.
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black uppercase tracking-widest text-accent">Master Password</label>
-                      <input 
-                        type="password" 
-                        placeholder="••••••••"
-                        className="w-full bg-background border border-white/10 rounded-2xl px-5 py-4 text-sm font-medium focus:ring-2 focus:ring-accent/20 outline-none transition-all text-primary placeholder:text-muted/30"
-                        value={formData.password}
-                        onChange={(e) => setFormData({...formData, password: e.target.value})}
-                        autoFocus
-                      />
-                    </div>
-
-                    <div className="flex gap-4">
-                      <button 
-                        onClick={() => setFormStep(1)}
-                        className="flex-1 py-4 bg-background text-muted rounded-2xl font-black text-[10px] uppercase tracking-widest border border-white/5"
-                      >
-                        Previous
-                      </button>
-                      <button 
-                        disabled={!formData.password}
-                        onClick={handleCreateVault}
-                        className="flex-[2] py-5 bg-accent text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl disabled:opacity-30 transition-all"
-                      >
-                        Create Secure Vault
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Password Auth Modal */}
-      <AnimatePresence>
-        {authNeededId && (
-          <div 
-            className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-background/80 backdrop-blur-md cursor-pointer"
-            onClick={() => setAuthNeededId(null)}
-          >
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-surface w-full max-w-sm rounded-[3rem] overflow-hidden shadow-2xl p-8 cursor-default border border-white/10"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex flex-col items-center text-center">
-                <div className="w-16 h-16 bg-accent/10 rounded-3xl flex items-center justify-center text-accent mb-6">
-                  <Lock className="w-8 h-8" />
-                </div>
-                
-                <h3 className="text-xl font-black uppercase tracking-tighter text-primary mb-2">
-                  Vault Locked
-                </h3>
-                <p className="text-xs text-muted font-medium opacity-60 mb-8">
-                  Please enter the master password to access your encrypted assets.
-                </p>
-
-                <div className="w-full space-y-4">
-                  <div className="space-y-2 text-left">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-accent ml-2">Vault Password</label>
-                    <input 
-                      type="password" 
-                      placeholder="••••••••"
-                      className={`w-full bg-background border rounded-2xl px-5 py-4 text-sm font-medium outline-none transition-all text-primary placeholder:text-muted/30 ${authError ? 'border-red-500 ring-2 ring-red-500/20' : 'border-white/10 focus:ring-2 focus:ring-accent/20'}`}
-                      value={passwordInput}
-                      onChange={(e) => setPasswordInput(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && verifyPassword()}
-                      autoFocus
-                    />
-                    {authError && (
-                      <p className="text-[9px] font-black uppercase text-red-500 mt-2 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Invalid Security Password
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button 
-                      onClick={() => setAuthNeededId(null)}
-                      className="flex-1 py-4 bg-background text-muted rounded-2xl font-black text-[10px] uppercase tracking-widest border border-white/5"
-                    >
-                      Cancel
-                    </button>
-                    <button 
-                      onClick={verifyPassword}
-                      className="flex-[1.5] py-4 bg-accent text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-accent/20"
-                    >
-                      Unlock Assets
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </div>
     </div>
   );
 }

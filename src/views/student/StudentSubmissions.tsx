@@ -1,19 +1,30 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  FileText, 
-  Image as ImageIcon, 
-  Upload, 
-  Send, 
-  ArrowLeft, 
-  ShieldCheck, 
-  AlertCircle,
-  CheckCircle2,
-  X,
-  FileDown
+  Upload, CheckCircle2, XCircle, Clock, ArrowLeft, 
+  Sparkles, FileText, Check, ChevronDown, RefreshCw, 
+  BookOpen, HelpCircle, AlertCircle, FileDown
 } from 'lucide-react';
-import { auth } from '../../lib/firebase';
-import { supabaseStorage } from '../../lib/supabaseStorage';
+import { createClient } from '../../../utils/supabase/client';
+
+const supabase = createClient();
+
+interface Student {
+  id: string;
+  name: string;
+}
+
+interface Submission {
+  id: string;
+  created_at: string;
+  student_id: string;
+  class: string;
+  section: string;
+  assignment_name: string;
+  file_url: string;
+  status: string;
+  teacher_comment: string | null;
+}
 
 interface StudentSubmissionsProps {
   onBack?: () => void;
@@ -22,328 +33,532 @@ interface StudentSubmissionsProps {
 }
 
 export default function StudentSubmissions({ onBack, userClass, userSection }: StudentSubmissionsProps) {
-  const [step, setStep] = useState<'form' | 'type' | 'content' | 'success'>('form');
-  const [formData, setFormData] = useState({
-    name: '',
-    admnNo: '',
-    filledClass: '',
-    filledSection: ''
-  });
-  const [permType, setPermType] = useState<'Leave Application' | 'Letter' | 'Other'>('Leave Application');
-  const [submissionMethod, setSubmissionMethod] = useState<'text' | 'file' | 'photo'>('text');
-  const [textValue, setTextValue] = useState('');
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [fileBase64, setFileBase64] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [showError, setShowError] = useState(false);
+  const [selectedClass, setSelectedClass] = useState(userClass || 'X');
+  const [selectedSection, setSelectedSection] = useState(userSection || 'A');
+  const [students, setStudents] = useState<Student[]>([]);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+  const [assignmentName, setAssignmentName] = useState<string>('');
+  
+  // File and Upload states
+  const [file, setFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<'idle' | 'uploading' | 'saving' | 'success' | 'error'>('idle');
+  const [errorMsg, setErrorMsg] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  
+  // Submissions list
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [loadingSubmissions, setLoadingSubmissions] = useState(false);
+  const [loadingStudents, setLoadingStudents] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFormSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const normalize = (val: string | null) => (val || '').trim().toUpperCase();
-    
-    if (normalize(formData.filledClass) !== normalize(userClass) || 
-        normalize(formData.filledSection) !== normalize(userSection)) {
-      setShowError(true);
+  // Fetch students based on selected class and section
+  const fetchStudents = async (klass: string, sect: string) => {
+    setLoadingStudents(true);
+    setStudents([]);
+    setSelectedStudentId('');
+    try {
+      const { data, error } = await supabase
+        .from('students')
+        .select('id, name')
+        .eq('class', klass)
+        .eq('section', sect)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      setStudents(data || []);
+    } catch (err) {
+      console.error("Error fetching students list:", err);
+    } finally {
+      setLoadingStudents(false);
+    }
+  };
+
+  // Fetch previous submissions for the chosen student
+  const fetchPreviousSubmissions = async (studentId: string) => {
+    if (!studentId) {
+      setSubmissions([]);
       return;
     }
-    setStep('type');
+    setLoadingSubmissions(true);
+    try {
+      const { data, error } = await supabase
+        .from('submissions')
+        .select('*')
+        .eq('student_id', studentId)
+        .order('id', { ascending: false }); // Newest primary ID first
+
+      if (error) throw error;
+      setSubmissions(data || []);
+    } catch (err) {
+      console.error("Error fetching previous submissions:", err);
+    } finally {
+      setLoadingSubmissions(false);
+    }
+  };
+
+  // Trigger loading students on changes
+  useEffect(() => {
+    fetchStudents(selectedClass, selectedSection);
+  }, [selectedClass, selectedSection]);
+
+  // Trigger loading submissions when student is chosen
+  useEffect(() => {
+    fetchPreviousSubmissions(selectedStudentId);
+  }, [selectedStudentId]);
+
+  // File drag handlers
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      setFile(e.dataTransfer.files[0]);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert("File size too large. Please upload less than 2MB.");
-        return;
-      }
-      setFileName(file.name);
-      const reader = new FileReader();
-      reader.onload = () => {
-        setFileBase64(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
     }
   };
 
-  const finalSubmit = async () => {
-    setLoading(true);
+  // Submission pipeline
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedStudentId) {
+      setErrorMsg("Please select your name from the class roster.");
+      return;
+    }
+    if (!assignmentName.trim()) {
+      setErrorMsg("Please enter an assignment name.");
+      return;
+    }
+    if (!file) {
+      setErrorMsg("Please select a physical assignment document/file to upload.");
+      return;
+    }
+
+    setUploadProgress('uploading');
+    setErrorMsg('');
+
     try {
-      const studentId = auth.currentUser?.uid || 'anonymous-' + Date.now();
-      const normalizedName = formData.name.trim();
-      const normalizedAdmn = formData.admnNo.trim();
-      
-      await supabaseStorage.addSubmission({
-        studentId: studentId,
-        studentName: normalizedName,
-        admnNo: normalizedAdmn,
-        class: userClass,
-        section: userSection,
-        type: permType,
-        method: submissionMethod,
-        content: submissionMethod === 'text' ? textValue : fileBase64,
-        fileName: fileName,
-        status: 'pending'
-      });
-      setStep('success');
-    } catch (error) {
-      console.error("Submission failed:", error);
-      alert("Submission failed. Please check your connection.");
-    } finally {
-      setLoading(false);
+      // 1. Generate path
+      const fileExt = file.name.split('.').pop() || 'dat';
+      const cleanName = file.name.replace(/[^\w\s.-]/g, '').replace(/\s+/g, '_');
+      const uniquePath = `submissions/${selectedClass}/${selectedSection}/${Date.now()}_${cleanName}`;
+
+      // 2. Upload to 'vault-files' storage bucket
+      const { data: storageData, error: storageErr } = await supabase.storage
+        .from('vault-files')
+        .upload(uniquePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (storageErr) {
+        if (storageErr.message?.toLowerCase().includes('bucket not found')) {
+          throw new Error("Storage bucket 'vault-files' was not found. Please verify standard Supabase Storage configuration.");
+        }
+        throw storageErr;
+      }
+
+      setUploadProgress('saving');
+
+      // 3. Get Public URL
+      const { data: publicUrlData } = supabase.storage
+        .from('vault-files')
+        .getPublicUrl(uniquePath);
+
+      const uploadedUrl = publicUrlData.publicUrl;
+
+      // 4. Save metadata row inside 'submissions' table
+      const { data: insertData, error: insertErr } = await supabase
+        .from('submissions')
+        .insert([
+          {
+            student_id: selectedStudentId,
+            class: selectedClass,
+            section: selectedSection,
+            assignment_name: assignmentName.trim(),
+            file_url: uploadedUrl,
+            status: 'Pending',
+            teacher_comment: null
+          }
+        ])
+        .select();
+
+      if (insertErr) {
+        // Rollback physical upload if SQL record creation fails
+        await supabase.storage.from('vault-files').remove([uniquePath]);
+        throw insertErr;
+      }
+
+      setUploadProgress('success');
+      setAssignmentName('');
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+
+      // Reload list
+      await fetchPreviousSubmissions(selectedStudentId);
+
+      // Reset success banner after 3 seconds
+      setTimeout(() => {
+        setUploadProgress('idle');
+      }, 3000);
+
+    } catch (err: any) {
+      console.error("Submission pipeline failed:", err);
+      setErrorMsg(err.message || "Failed to submit assignment. Check your Supabase tables and credentials.");
+      setUploadProgress('error');
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
-      <AnimatePresence mode="wait">
-        {step === 'form' && (
-          <motion.div
-            key="form"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="bg-white p-10 rounded-[3rem] border border-[#e7e5e4] shadow-sm space-y-8"
-          >
-            <div className="flex items-center gap-4 mb-4">
-              {onBack && (
-                <button onClick={onBack} className="p-3 bg-neutral-50 rounded-xl text-[#0066CC]">
-                  <ArrowLeft className="w-5 h-5" />
-                </button>
-              )}
-              <div>
-                <h2 className="text-2xl font-black text-[#0066CC] uppercase tracking-tighter">Submission Form</h2>
-                <p className="text-[10px] font-black text-[#57534e] uppercase tracking-widest mt-1">Identity Verification Required</p>
-              </div>
-            </div>
-
-            <form onSubmit={handleFormSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-[#57534e] ml-2">Full Name</label>
-                <input 
-                  required
-                  value={formData.name}
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  className="w-full bg-[#f8f9fa] p-5 rounded-2xl border border-transparent focus:border-[#0066CC] outline-none font-bold"
-                  placeholder="Enter your name"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-[#57534e] ml-2">Admission Number</label>
-                <input 
-                  required
-                  value={formData.admnNo}
-                  onChange={e => setFormData({...formData, admnNo: e.target.value})}
-                  className="w-full bg-[#f8f9fa] p-5 rounded-2xl border border-transparent focus:border-[#0066CC] outline-none font-bold"
-                  placeholder=""
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-[#57534e] ml-2">Class</label>
-                  <input 
-                    required
-                    value={formData.filledClass}
-                    onChange={e => setFormData({...formData, filledClass: e.target.value})}
-                    className="w-full bg-[#f8f9fa] p-5 rounded-2xl border border-transparent focus:border-[#0066CC] outline-none font-bold"
-                    placeholder=""
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase text-[#57534e] ml-2">Section</label>
-                  <input 
-                    required
-                    value={formData.filledSection}
-                    onChange={e => setFormData({...formData, filledSection: e.target.value})}
-                    className="w-full bg-[#f8f9fa] p-5 rounded-2xl border border-transparent focus:border-[#0066CC] outline-none font-bold"
-                    placeholder=""
-                  />
-                </div>
-              </div>
-
-              <button 
-                type="submit"
-                className="w-full bg-[#0066CC] text-white py-6 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg hover:bg-[#0055B3] transition-all"
-              >
-                Next Step
-              </button>
-            </form>
-          </motion.div>
-        )}
-
-        {step === 'type' && (
-          <motion.div
-            key="type"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="space-y-8"
-          >
-            <button onClick={() => setStep('form')} className="flex items-center gap-2 text-[#0066CC] font-black text-[10px] uppercase tracking-widest">
-              <ArrowLeft className="w-4 h-4" /> Go back
-            </button>
-            <h2 className="text-3xl font-black text-[#0066CC] uppercase tracking-tighter">Choose Document Type</h2>
-            <div className="grid grid-cols-1 gap-4">
-              {['Leave Application', 'Letter', 'Other'].map(type => (
-                <button
-                  key={type}
-                  onClick={() => { setPermType(type as any); setStep('content'); }}
-                  className="p-8 bg-white rounded-3xl border border-[#e7e5e4] hover:border-[#0066CC] transition-all flex items-center justify-between group"
-                >
-                  <span className="text-xl font-black text-[#1c1917] group-hover:text-[#0066CC]">{type}</span>
-                  <FileText className="w-6 h-6 text-[#57534e] opacity-20 group-hover:opacity-100" />
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        {step === 'content' && (
-          <motion.div
-            key="content"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white p-10 rounded-[3rem] border border-[#e7e5e4] shadow-sm space-y-8"
-          >
-            <header className="flex justify-between items-start">
-               <button onClick={() => setStep('type')} className="p-3 bg-neutral-50 rounded-xl">
-                 <ArrowLeft className="w-4 h-4" />
-               </button>
-               <div className="text-right">
-                 <h2 className="text-2xl font-black text-[#0066CC] uppercase tracking-tighter">{permType}</h2>
-                 <p className="text-[10px] font-black text-[#57534e] uppercase tracking-widest">Select Submission Method</p>
-               </div>
-            </header>
-
-            <div className="flex gap-4 p-2 bg-[#f8f9fa] rounded-2xl border border-[#e7e5e4]">
-              {[
-                { id: 'text', icon: FileText, label: 'Write Text' },
-                { id: 'file', icon: Upload, label: 'Upload File' },
-                { id: 'photo', icon: ImageIcon, label: 'Add Photo' }
-              ].map(m => (
-                <button
-                  key={m.id}
-                  onClick={() => setSubmissionMethod(m.id as any)}
-                  className={`flex-1 flex flex-col items-center gap-2 py-4 rounded-xl transition-all ${
-                    submissionMethod === m.id ? 'bg-[#0066CC] text-white shadow-lg' : 'text-[#57534e] hover:bg-white'
-                  }`}
-                >
-                  <m.icon className="w-5 h-5" />
-                  <span className="text-[8px] font-black uppercase tracking-widest">{m.label}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="min-h-[200px]">
-              {submissionMethod === 'text' && (
-                <textarea
-                  autoFocus
-                  value={textValue}
-                  onChange={e => setTextValue(e.target.value)}
-                  placeholder="Type your content here..."
-                  className="w-full bg-[#f8f9fa] p-6 rounded-3xl border-2 border-transparent focus:border-[#0066CC] outline-none min-h-[200px] font-medium"
-                />
-              )}
-
-              {(submissionMethod === 'file' || submissionMethod === 'photo') && (
-                <div 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full h-[200px] bg-[#f8f9fa] border-2 border-dashed border-[#e7e5e4] rounded-3xl flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-[#0066CC] transition-all"
-                >
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    className="hidden" 
-                    accept={submissionMethod === 'photo' ? 'image/*' : '*'} 
-                    onChange={handleFileChange}
-                  />
-                  {fileName ? (
-                    <>
-                      <FileDown className="w-10 h-10 text-emerald-500" />
-                      <p className="font-black text-xs text-[#0066CC] px-4 truncate max-w-full">{fileName}</p>
-                    </>
-                  ) : (
-                    <>
-                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-[#0066CC] shadow-sm">
-                        <Upload className="w-6 h-6" />
-                      </div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-[#57534e]">
-                        Click to upload {submissionMethod}
-                      </p>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={finalSubmit}
-              disabled={loading || (submissionMethod === 'text' ? !textValue.trim() : !fileBase64)}
-              className="w-full bg-[#0066CC] text-white py-6 rounded-3xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl hover:bg-[#0055B3] disabled:opacity-50"
-            >
-              {loading ? <Upload className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              {loading ? 'Submitting...' : 'Send Submission'}
-            </button>
-          </motion.div>
-        )}
-
-        {step === 'success' && (
-          <motion.div
-            key="success"
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="text-center py-20"
-          >
-            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-8">
-              <CheckCircle2 className="w-10 h-10" />
-            </div>
-            <h2 className="text-4xl font-black text-[#0066CC] uppercase tracking-tighter mb-4 italic">Success!</h2>
-            <p className="text-[#57534e] font-medium max-w-sm mx-auto mb-10">
-              Your documentation has been synced with the teacher's dashboard. Please wait for official review.
-            </p>
-            <button
+    <div className="max-w-6xl mx-auto space-y-6 pb-24 selection:bg-sky-100">
+      
+      {/* HEADER SECTION */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/60">
+        <div className="flex items-center gap-3">
+          {onBack && (
+            <button 
               onClick={onBack}
-              className="px-10 py-5 bg-[#0066CC] text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg"
+              className="p-2 -ml-2 text-neutral-500 hover:text-slate-950 hover:bg-slate-100 rounded-full transition-all cursor-pointer"
+              title="Go Back"
             >
-              Back to Dashboard
+              <ArrowLeft className="w-5 h-5" />
             </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+          <div className="p-2.5 rounded-xl bg-violet-50 text-violet-600">
+            <BookOpen className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none uppercase">
+              Student Submissions Hub
+            </h1>
+            <p className="text-slate-400 font-mono font-bold text-[9px] uppercase tracking-wider mt-1.5">
+              Submit Assignments & View Teacher Real-Time Reviews
+            </p>
+          </div>
+        </div>
+      </div>
 
-      <AnimatePresence>
-        {showError && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-[#1c1917]/90 backdrop-blur-md"
-          >
-            <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              className="bg-white p-10 rounded-[2.5rem] max-w-sm w-full text-center space-y-6"
-            >
-              <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto">
-                <AlertCircle className="w-8 h-8" />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* LEFT COLUMN: ASSIGNMENT UPLOAD FORM */}
+        <div className="lg:col-span-5 bg-white border border-slate-200/80 rounded-2xl shadow-sm p-5 space-y-5">
+          <div className="space-y-1">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 font-mono">
+              New Submittal Form
+            </h3>
+            <p className="text-xs text-slate-500">
+              Provide details and upload your document to submit for teacher grading.
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            
+            {/* GRID OF CLASS AND SECTION FILTERS */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold uppercase text-slate-400 block tracking-wide">Class</label>
+                <select 
+                  value={selectedClass}
+                  onChange={(e) => setSelectedClass(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200/80 focus:border-violet-400 rounded-xl px-3 py-2 font-bold text-xs text-slate-700 outline-none transition-all cursor-pointer"
+                >
+                  {['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'].map(c => (
+                    <option key={c} value={c}>Class {c}</option>
+                  ))}
+                </select>
               </div>
-              <h3 className="text-xl font-black text-[#0066CC] uppercase tracking-tighter">Class Mismatch</h3>
-              <p className="text-sm font-medium text-[#57534e] leading-relaxed">
-                The Class and Section you entered do not match your current session. Please select the right class.
-              </p>
-              <button
-                onClick={() => setShowError(false)}
-                className="w-full bg-[#0066CC] text-white py-4 rounded-xl font-black uppercase tracking-widest text-[10px]"
+
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-bold uppercase text-slate-400 block tracking-wide">Section</label>
+                <select 
+                  value={selectedSection}
+                  onChange={(e) => setSelectedSection(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200/80 focus:border-violet-400 rounded-xl px-3 py-2 font-bold text-xs text-slate-700 outline-none transition-all cursor-pointer"
+                >
+                  {['A', 'B', 'C', 'D', 'E'].map(s => (
+                    <option key={s} value={s}>Section {s}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* NAME SELECTOR */}
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-bold uppercase text-slate-400 block tracking-wide">
+                Select Your Name ({loadingStudents ? 'loading...' : `${students.length} found`})
+              </label>
+              <div className="relative">
+                <select 
+                  required
+                  value={selectedStudentId}
+                  onChange={(e) => setSelectedStudentId(e.target.value)}
+                  disabled={students.length === 0}
+                  className="w-full bg-slate-50 border border-slate-200/80 focus:border-violet-400 rounded-xl px-3 py-2.5 font-bold text-xs text-slate-700 outline-none transition-all cursor-pointer disabled:opacity-50 appearance-none"
+                >
+                  <option value="">-- Choose Name from Roster --</option>
+                  {students.map(s => (
+                    <option key={s.id} value={s.id}>{s.name.toUpperCase()}</option>
+                  ))}
+                </select>
+                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <ChevronDown className="w-4 h-4" />
+                </div>
+              </div>
+              {students.length === 0 && !loadingStudents && (
+                <p className="text-[9px] text-amber-600 font-bold tracking-tight">
+                  ⚠️ No registered students in class roster {selectedClass}-{selectedSection}. Introduce pupils via Student Selector first!
+                </p>
+              )}
+            </div>
+
+            {/* ASSIGNMENT NAME TEXT FIELD */}
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-bold uppercase text-slate-400 block tracking-wide">Assignment Name / Subject</label>
+              <input 
+                type="text"
+                required
+                value={assignmentName}
+                onChange={(e) => setAssignmentName(e.target.value)}
+                placeholder="e.g. Physics Homework 3, English Essay"
+                className="w-full bg-slate-50 border border-slate-200/80 focus:border-violet-400 rounded-xl px-4 py-2.5 font-bold text-xs text-slate-700 outline-none transition-all"
+              />
+            </div>
+
+            {/* FILE DRAG AND DROP BOX */}
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-bold uppercase text-slate-400 block tracking-wide">Assignment File (PDF or Document)</label>
+              <div 
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center min-h-[140px] ${
+                  isDragging 
+                    ? 'border-violet-500 bg-violet-50/50' 
+                    : file 
+                      ? 'border-emerald-400 bg-emerald-50/10' 
+                      : 'border-slate-200 hover:border-violet-300 bg-slate-50/50 hover:bg-slate-50'
+                }`}
               >
-                Correct Details
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                <input 
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt,.pages,.key"
+                />
+                
+                {file ? (
+                  <div className="space-y-2">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 mx-auto flex items-center justify-center border border-emerald-100 shadow-sm">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <p className="font-bold text-xs text-neutral-800 line-clamp-1 max-w-[240px] mx-auto uppercase tracking-tight">
+                        {file.name}
+                      </p>
+                      <p className="text-[9px] text-slate-400 font-mono font-bold">
+                        {(file.size / (1024 * 1024)).toFixed(2)} MB · ready
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-500 mx-auto flex items-center justify-center shadow-inner">
+                      <Upload className="w-4 h-4" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-bold text-slate-700">Drag file here or click to browse</p>
+                      <p className="text-[8.5px] text-slate-400 font-mono font-bold uppercase tracking-widest">Supports PDF, Documents, images up to 10MB</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* PIPELINE ERROR DISPLAY */}
+            {errorMsg && (
+              <div className="p-3 bg-red-50 text-red-700 border border-red-100 rounded-xl flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <p className="text-[10px] font-semibold leading-relaxed">{errorMsg}</p>
+              </div>
+            )}
+
+            {/* STATUS DIALOG/FEEDBACK FOR LARGE PIPELINES */}
+            {uploadProgress !== 'idle' && (
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 font-mono text-[9px] uppercase tracking-wider space-y-1">
+                <div className="flex items-center justify-between font-bold">
+                  <span>Submittal Pipeline:</span>
+                  <span className={uploadProgress === 'success' ? 'text-emerald-600 font-black' : 'text-indigo-600 font-black'}>
+                    {uploadProgress}
+                  </span>
+                </div>
+                <div className="text-[8.5px] text-slate-400 font-medium lowercase">
+                  {uploadProgress === 'uploading' && "transferring document binary to supastorage 'vault-files'..."}
+                  {uploadProgress === 'saving' && "anchoring url reference into submissions catalog..."}
+                  {uploadProgress === 'success' && "assignment successfully synchronized!"}
+                </div>
+              </div>
+            )}
+
+            {/* TRIGGER ACTION BUTTON */}
+            <button
+              type="submit"
+              disabled={uploadProgress === 'uploading' || uploadProgress === 'saving' || students.length === 0}
+              className="w-full bg-gradient-to-tr from-violet-600 to-violet-700 hover:from-violet-500 hover:to-violet-600 disabled:opacity-40 text-white font-black uppercase tracking-widest text-xs py-3 rounded-xl flex items-center justify-center gap-2 shadow-md hover:scale-[1.01] active:scale-95 transition-all cursor-pointer"
+            >
+              {(uploadProgress === 'uploading' || uploadProgress === 'saving') ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Check className="w-4 h-4" />
+              )}
+              {uploadProgress === 'uploading' ? 'Uploading document...' : uploadProgress === 'saving' ? 'Verifying record...' : 'Submit Assignment'}
+            </button>
+
+          </form>
+        </div>
+
+        {/* RIGHT COLUMN: PREVIOUS SUBMISSIONS AND REVIEWS LIST */}
+        <div className="lg:col-span-7 bg-white border border-slate-200/80 rounded-2xl shadow-sm p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 font-mono">
+                Recent Submissions Log
+              </h3>
+              <p className="text-xs text-slate-500">
+                Track status and view grading notes from your teachers.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3 max-h-[460px] overflow-y-auto pr-1 dropdown-scroll custom-scrollbar">
+            {!selectedStudentId ? (
+              <div className="text-center py-16 text-slate-400 border border-dashed border-slate-100 rounded-xl bg-slate-50/50">
+                <HelpCircle className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="text-xs font-semibold text-slate-500"> Roster Identity Not Selected</p>
+                <p className="text-[9px] text-slate-400 max-w-xs mx-auto mt-1 uppercase">
+                  Select your Class, Section, and Name on the left to review your submission history.
+                </p>
+              </div>
+            ) : loadingSubmissions ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-2 text-slate-400">
+                <RefreshCw className="w-6 h-6 animate-spin text-violet-400" />
+                <p className="font-mono text-[8.5px] uppercase tracking-wider">Loading history from ledger...</p>
+              </div>
+            ) : submissions.length === 0 ? (
+              <div className="text-center py-16 text-slate-400 border border-dashed border-slate-100 rounded-xl bg-slate-50/50">
+                <Sparkles className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="text-xs font-semibold text-slate-500">A clean sheet!</p>
+                <p className="text-[9px] text-slate-400 max-w-xs mx-auto mt-1 uppercase">
+                  You have no recorded assignment submissions here yet. Use the upload panel to deliver your first work.
+                </p>
+              </div>
+            ) : (
+              submissions.map((sub) => {
+                const isPending = sub.status?.toLowerCase() === 'pending';
+                const isApproved = sub.status?.toLowerCase() === 'approved';
+                const isDenied = sub.status?.toLowerCase() === 'denied' || sub.status?.toLowerCase() === 'rejected';
+
+                return (
+                  <div 
+                    key={sub.id} 
+                    className="p-4 rounded-xl border border-slate-100 bg-slate-50/30 space-y-3 hover:border-slate-200 transition-all"
+                  >
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="space-y-1">
+                        <span className="text-[8px] bg-slate-100 text-slate-500 font-mono font-bold px-2 py-0.5 rounded uppercase">
+                          ID #{sub.id} · CLASS {sub.class}-{sub.section}
+                        </span>
+                        <h4 className="font-black text-slate-900 text-sm uppercase tracking-tight">
+                          {sub.assignment_name}
+                        </h4>
+                        <div className="flex items-center gap-1.5 text-[9px] text-slate-400 font-medium">
+                          <span>Submitted:</span>
+                          <span>{sub.created_at ? new Date(sub.created_at).toLocaleString() : 'Just now'}</span>
+                        </div>
+                      </div>
+
+                      {/* Status indicator badge */}
+                      <div>
+                        {isPending && (
+                          <span className="flex items-center gap-1 bg-slate-100 text-slate-600 font-mono font-bold text-[8.5px] uppercase px-2.5 py-1 rounded-full border border-slate-200/50">
+                            <Clock className="w-3 h-3 text-slate-500" />
+                            Pending
+                          </span>
+                        )}
+                        {isApproved && (
+                          <span className="flex items-center gap-1 bg-emerald-50 text-emerald-700 font-mono font-bold text-[8.5px] uppercase px-2.5 py-1 rounded-full border border-emerald-100">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            Approved
+                          </span>
+                        )}
+                        {isDenied && (
+                          <span className="flex items-center gap-1 bg-rose-50 text-rose-700 font-mono font-bold text-[8.5px] uppercase px-2.5 py-1 rounded-full border border-rose-100">
+                            <XCircle className="w-3 h-3 text-rose-600" />
+                            Denied
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* File Attachment Pill */}
+                    {sub.file_url && (
+                      <div className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-100 text-[10px] shadow-sm">
+                        <div className="flex items-center gap-2 text-slate-600 min-w-0">
+                          <FileText className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                          <span className="font-bold truncate max-w-[200px]">Physical Document Asset</span>
+                        </div>
+                        <a 
+                          href={sub.file_url} 
+                          target="_blank" 
+                          referrerPolicy="no-referrer"
+                          rel="noreferrer"
+                          className="flex items-center gap-1 px-2 py-1 bg-slate-50 hover:bg-indigo-50 text-indigo-600 hover:text-indigo-700 rounded font-black uppercase text-[8.5px] transition-colors leading-none"
+                        >
+                          <FileDown className="w-3 h-3" />
+                          Open File
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Teacher Review Comments Block */}
+                    {sub.teacher_comment ? (
+                      <div className="p-3 bg-amber-50/55 rounded-xl border border-amber-100 flex flex-col gap-1">
+                        <span className="text-[8.5px] font-black text-amber-800 uppercase tracking-wide">Teacher Review Comments:</span>
+                        <p className="text-xs text-amber-900/90 font-medium text-slate-700 leading-relaxed italic">
+                          "{sub.teacher_comment}"
+                        </p>
+                      </div>
+                    ) : (
+                      !isPending && (
+                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/80 text-[10px] text-slate-400 italic font-medium">
+                          No assessment comment accompanied this grade review.
+                        </div>
+                      )
+                    )}
+
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+      </div>
+
     </div>
   );
 }

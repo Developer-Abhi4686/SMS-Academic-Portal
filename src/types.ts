@@ -41,3 +41,11 @@ export interface AIResponse {
   text: string;
   type: 'quiz' | 'plan' | 'doubt' | 'assignment' | 'analysis' | 'concept';
 }
+
+export interface RunningApp {
+  id: string; // The app view identifier, e.g. 'generator', 'vault'
+  minimized: boolean;
+  maximized: boolean;
+  zIndex: number;
+}
+

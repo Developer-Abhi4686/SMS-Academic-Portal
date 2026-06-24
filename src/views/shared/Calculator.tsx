@@ -141,21 +141,21 @@ export default function Calculator({ onBack }: { onBack?: () => void }) {
           <motion.button
             whileHover={{ y: -8, scale: 1.02 }}
             onClick={() => setMode('percentage')}
-            className="bg-white p-12 rounded-[3.5rem] border border-[#9E9EB7]/25 flex flex-col items-center text-center gap-8 shadow-sm hover:border-[#6B6998] hover:shadow-2xl transition-all group"
+            className="bg-white p-6 sm:p-12 rounded-[2rem] sm:rounded-[3.5rem] border border-[#9E9EB7]/25 flex flex-col items-center text-center gap-6 sm:gap-8 shadow-sm hover:border-[#6B6998] hover:shadow-2xl transition-all group"
           >
-            <div className="w-20 h-20 bg-[#F4F4F6] rounded-[2rem] flex items-center justify-center text-[#6B6998] group-hover:bg-[#6B6998] group-hover:text-white transition-all duration-500 shadow-inner">
-              <Percent className="w-8 h-8" />
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#F4F4F6] rounded-2xl sm:rounded-[2rem] flex items-center justify-center text-[#6B6998] group-hover:bg-[#6B6998] group-hover:text-white transition-all duration-500 shadow-inner">
+              <Percent className="w-6 h-6 sm:w-8 sm:h-8" />
             </div>
             <div>
-              <h2 className="text-2xl font-black uppercase tracking-tighter mb-3">Academic Yield</h2>
-              <p className="text-[#1A1A1A]/70 text-[10px] font-black uppercase tracking-widest opacity-60 leading-relaxed">Percentage & Grade Analysis Module</p>
+              <h2 className="text-xl sm:text-2xl font-black uppercase tracking-tighter mb-2 sm:mb-3">Academic Yield</h2>
+              <p className="text-[#1A1A1A]/70 text-[9px] sm:text-[10px] font-black uppercase tracking-widest opacity-60 leading-relaxed">Percentage & Grade Analysis Module</p>
             </div>
           </motion.button>
 
           <motion.button
             whileHover={{ y: -8, scale: 1.02 }}
             onClick={() => setMode('standard')}
-            className="bg-[#1A1A1A] p-12 rounded-[3.5rem] border border-[#1A1A1A] flex flex-col items-center text-center gap-8 shadow-2xl hover:shadow-[#6B6998]/20 transition-all group overflow-hidden relative"
+            className="bg-[#1A1A1A] p-6 sm:p-12 rounded-[2rem] sm:rounded-[3.5rem] border border-[#1A1A1A] flex flex-col items-center text-center gap-6 sm:gap-8 shadow-2xl hover:shadow-[#6B6998]/20 transition-all group overflow-hidden relative"
           >
             <div className="w-20 h-20 bg-white/10 rounded-[2rem] flex items-center justify-center text-white group-hover:text-[#9E9EB7] backdrop-blur-xl transition-all duration-500 border border-white/10 relative z-10">
               <CalcIcon className="w-8 h-8" />
@@ -194,8 +194,8 @@ export default function Calculator({ onBack }: { onBack?: () => void }) {
           </button>
         </header>
 
-        <div className="bg-white rounded-[4rem] border border-[#9E9EB7]/25 p-10 md:p-16 shadow-inner relative overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+        <div className="bg-white rounded-[2rem] sm:rounded-[4rem] border border-[#9E9EB7]/25 p-5 sm:p-10 md:p-16 shadow-inner relative overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 relative z-10">
             <div className="space-y-4 max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
               {marks.map((m, idx) => (
                 <div key={m.id} className="flex items-center gap-4 group">
@@ -260,10 +260,10 @@ export default function Calculator({ onBack }: { onBack?: () => void }) {
 
   return (
     <div className="max-w-md mx-auto h-full flex flex-col justify-center">
-       <div className="bg-[#1A1A1A] p-8 md:p-12 rounded-[4rem] border-8 border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.5)] relative">
+       <div className="bg-[#1A1A1A] p-4 sm:p-10 rounded-[2rem] sm:rounded-[4rem] border-4 sm:border-8 border-white/10 shadow-[0_40px_100px_rgba(0,0,0,0.5)] relative">
           
           {/* Status Bar */}
-          <div className="flex justify-between items-center mb-8 px-4 opacity-50">
+          <div className="flex justify-between items-center mb-6 px-3 sm:px-4 opacity-50">
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-[#6B6998] shadow-[0_0_10px_rgba(107,105,152,0.8)]" />
               <span className="text-[8px] font-mono uppercase tracking-widest text-[#fdfcfb]">Core_X1</span>
@@ -272,7 +272,7 @@ export default function Calculator({ onBack }: { onBack?: () => void }) {
           </div>
 
           {/* Liquid Crystal Display */}
-          <div className="bg-black/45 p-8 rounded-[2rem] border border-white/5 mb-10 text-right flex flex-col justify-end min-h-[160px] relative overflow-hidden shadow-inner font-mono">
+          <div className="bg-black/45 p-4 sm:p-8 rounded-xl sm:rounded-[2rem] border border-white/5 mb-6 sm:mb-10 text-right flex flex-col justify-end min-h-[120px] sm:min-h-[160px] relative overflow-hidden shadow-inner font-mono">
              <div className="absolute top-4 left-6 opacity-10 text-white text-[10px] uppercase tracking-widest">Analytical Buffer</div>
              <p className="text-white/30 text-xs mb-4 uppercase tracking-tighter truncate">{equation}</p>
              <div className="text-5xl font-light text-white tracking-tighter overflow-hidden text-ellipsis whitespace-nowrap">
@@ -283,7 +283,7 @@ export default function Calculator({ onBack }: { onBack?: () => void }) {
           </div>
 
           {/* Tactical Inputs */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-4 gap-2 sm:gap-4">
             {buttons.map((btn) => (
               <motion.button
                 key={btn.label}
@@ -294,7 +294,7 @@ export default function Calculator({ onBack }: { onBack?: () => void }) {
                   else if (btn.val === 'DEL') deleteLast();
                   else handleCalcPress(btn.val);
                 }}
-                className={`h-16 rounded-[1.25rem] flex items-center justify-center font-bold text-xs uppercase transition-all ${
+                className={`h-12 sm:h-16 rounded-xl sm:rounded-[1.25rem] flex items-center justify-center font-bold text-[10px] sm:text-xs uppercase transition-all ${
                   btn.type === 'num' ? 'bg-white/5 text-white hover:bg-white/10 border border-white/5' :
                   btn.type === 'sci' ? 'bg-[#1A1A1A] text-[#9E9EB7] hover:text-white border border-white/5' :
                   btn.type === 'op' ? 'bg-[#6B6998] text-white hover:bg-[#585582] shadow-lg shadow-[#6B6998]/20' :

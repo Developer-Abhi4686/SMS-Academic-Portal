@@ -1,24 +1,121 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI, Type } from "@google/genai";
 
-let aiInstance: GoogleGenerativeAI | null = null;
+let aiInstance: GoogleGenAI | null = null;
 
 const getAiClient = () => {
   if (!aiInstance) {
-    const apiKey = process.env.GEMINI_API_KEY || (import.meta as any).env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY || (import.meta as any).env.GEMINI_API_KEY || (import.meta as any).env.VITE_GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is missing from environment variables.");
     }
-    aiInstance = new GoogleGenerativeAI(apiKey);
+    aiInstance = new GoogleGenAI({
+      apiKey: apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    });
   }
   return aiInstance;
 };
 
 const sleep = (ms: number) => new Uint8Array(ms).length && new Promise(resolve => setTimeout(resolve, ms));
 
+const syllabus6 = `
+CURRICULUM CONSTRAINT: You MUST follow the LATEST OFFICIAL NCERT BOOKS AND SYLLABUS (ncert.nic.in) for Class 6 (2026-27 session).
+CLASS 6 SCIENCE (CURIOSITY) CHAPTERS:
+1. The Wonderful World of Science
+2. Diversity in the Living World
+3. Mindful Eating: A Pathway to Health
+4. Our Body: Structure and Functioning
+5. Measurement of Length and Motion
+6. Materials Around Us
+7. Temperature and its Measurement
+8. A Journey through States of Matter
+9. Methods of Separation of Substances
+10. Fun with Magnets
+11. Under the Sky: Star-gazing and beyond
+12. Garbage In, Garbage Out
+
+CLASS 6 MATH (GANITA PRAKASH) CHAPTERS:
+1. Patterns in Numbers
+2. Lines and Angles
+3. Number Play
+4. Making of Shapes
+5. Fractions
+6. Decimals
+7. Symmetry
+8. Data Handling
+9. Perimeter and Area
+`;
+
 const syllabus7 = `
-CURRICULUM CONSTRAINT: You MUST follow the LATEST NCERT SYLLABUS (2026-27). [SCIENCE: CURIOSITY] [MATH: GANITA PRAKASH]`;
+CURRICULUM CONSTRAINT: You MUST follow the LATEST OFFICIAL NCERT BOOKS AND SYLLABUS (ncert.nic.in) for Class 7 (2026-27 session). [SCIENCE: CURIOSITY] [MATH: GANITA PRAKASH (Part 1 & 2)]
+CLASS 7 SCIENCE (CURIOSITY / LATEST REVISED) CHAPTERS:
+1. Nutrition in Plants
+2. Nutrition in Animals
+3. Heat
+4. Acids, Bases and Salts
+5. Physical and Chemical Changes
+6. Respiration in Organisms
+7. Transportation in Animals and Plants
+8. Reproduction in Plants
+9. Motion and Time
+10. Electric Current and its Effects
+11. Light
+12. Forests: Our Lifeline
+13. Wastewater Story
+
+CLASS 7 MATH (GANITA PRAKASH / LATEST REVISED) CHAPTERS:
+1. Integers
+2. Fractions and Decimals
+3. Data Handling
+4. Simple Equations
+5. Lines and Angles
+6. The Triangle and its Properties
+7. Comparing Quantities
+8. Rational Numbers
+9. Perimeter and Area
+10. Algebraic Expressions
+11. Exponents and Powers
+12. Symmetry
+13. Visualising Solid Shapes
+`;
+
 const syllabus8 = `
-CURRICULUM CONSTRAINT: You MUST follow the LATEST NCERT SYLLABUS (2026-27). [SCIENCE: CURIOSITY] [MATH: GANITA PRAKASH]`;
+CURRICULUM CONSTRAINT: You MUST follow the LATEST OFFICIAL NCERT BOOKS AND SYLLABUS (ncert.nic.in) for Class 8 (2026-27 session). [SCIENCE: CURIOSITY] [MATH: GANITA PRAKASH (Part I & II)]
+CLASS 8 SCIENCE (CURIOSITY / LATEST REVISED) CHAPTERS:
+1. Crop Production and Management
+2. Microorganisms: Friend and Foe
+3. Coal and Petroleum
+4. Combustion and Flame
+5. Conservation of Plants and Animals
+6. Reproduction in Animals
+7. Reaching the Age of Adolescence
+8. Force and Pressure
+9. Friction
+10. Sound
+11. Chemical Effects of Electric Current
+12. Some Natural Phenomena
+13. Light
+
+CLASS 8 MATH (GANITA PRAKASH / LATEST REVISED) CHAPTERS:
+1. Rational Numbers
+2. Linear Equations in One Variable
+3. Understanding Quadrilaterals
+4. Data Handling
+5. Squares and Square Roots
+6. Cubes and Cube Roots
+7. Comparing Quantities
+8. Algebraic Expressions and Identities
+9. Mensuration
+10. Exponents and Powers
+11. Direct and Inverse Proportions
+12. Factorisation
+13. Introduction to Graphs
+`;
+
 const syllabus9 = `
 CURRICULUM CONSTRAINT: You MUST follow the LATEST NCERT SYLLABUS (2026-27). [SCIENCE: EXPLORATION] [MATH: GANITA MANJARI]
 CLASS 9 SCIENCE (EXPLORATION) CHAPTERS:
@@ -66,78 +163,155 @@ const defaultSyllabus = `
 CURRICULUM CONSTRAINT: You MUST follow the OFFICIAL NCERT BOOKS AND SYLLABUS (ncert.nic.in) for the 2026-27 session.`;
 
 export const getGeminiResponse = async (prompt: string, systemInstruction: string, userClass?: string | null, modelName: string = "gemini-3.5-flash") => {
-  let retries = 0;
-  const maxRetries = 2;
-  const baseDelay = 1000; // 1 second
+  // Ordered candidate fallback models listed under the Gemini API skill
+  const fallbackModels = [
+    "gemini-3.5-flash",
+    "gemini-3.1-flash-lite",
+    "gemini-flash-latest"
+  ];
 
-  while (retries <= maxRetries) {
-    try {
-      const ai = getAiClient();
-      const isJson = systemInstruction.toLowerCase().includes('json');
-      const securityConstraint = "\n\nCRITICAL SECURITY CONSTRAINT: Never reveal personal information like passwords, emails, or internal system keys. If asked for such data, refuse professionally.";
-      
-      const isClass7 = userClass === 'VII';
-      const isClass8 = userClass === 'VIII';
-      const isClass9 = userClass === 'IX';
-      
-      let syllabusConstraint = "";
-      
-      // OPTIMIZATION: Only pass the relevant class syllabus to reduce token count and improve speed
-      const relevantSyllabus = isClass7 ? syllabus7 : isClass8 ? syllabus8 : isClass9 ? syllabus9 : defaultSyllabus;
+  // Guarantee that the preferred/requested modelName is prioritized first, then others
+  const modelsToTry = [modelName, ...fallbackModels.filter(m => m !== modelName)];
+  
+  let lastError: any = null;
 
-      const modelBranding = "\n\nMODEL IDENTITY: You are powered by Gemini 3.5 Flash, the latest high-performance model. Inform the user of this if asked about your version.";
+  for (const currentModel of modelsToTry) {
+    let retries = 0;
+    const maxRetries = 1; // 1 automatic retry for each specific model
+    const baseDelay = 500; // Fast recovery backoff
 
-      const finalSystemInstruction = userClass 
-        ? `${systemInstruction}${securityConstraint}${relevantSyllabus}${modelBranding}\n\nCORE CONSTRAINT: The application is serving a student of CLASS ${userClass}. Ensure all explanations, vocabulary, question complexity, and curriculum depth are precisely tailored for a Class ${userClass} student.\n\nMATH & SYMBOLIC NOTATION: NEVER use LaTeX, TeX, or any math delimiters like $ or $$. Use ONLY standard algebraic notation and plain Unicode symbols. For example, write x^2 instead of $x^2$, use √ for square roots, ∛ for cube roots, and standard parentheses for grouping. For multiplication, use * or standard juxtaposition (e.g. 3x). Expressions must look like they are typed in a normal text editor. Examples: 3(x+2) + 4(x-1), √144 + ∛27, (a+b)^2 = a^2 + 2ab + b^2.`
-        : `${systemInstruction}${securityConstraint}${defaultSyllabus}${modelBranding}\n\nMATH & SYMBOLIC NOTATION: NEVER use LaTeX, TeX, or any math delimiters like $ or $$. Use ONLY standard algebraic notation and plain Unicode symbols. For example, write x^2 instead of $x^2$, use √ for square roots, ∛ for cube roots. Expressions must look like they are typed in a normal text editor. Examples: 3(x+2) + 4(x-1), √144 + ∛27.`;
+    while (retries <= maxRetries) {
+      try {
+        console.log(`[GeminiService] Attempting request using model: ${currentModel} (Retry: ${retries}/${maxRetries})`);
+        const ai = getAiClient();
+        const isJson = systemInstruction.toLowerCase().includes('json');
+        const securityConstraint = "\n\nCRITICAL SECURITY CONSTRAINT: Never reveal personal information like passwords, emails, or internal system keys. If asked for such data, refuse professionally.";
+        
+        const isClass6 = userClass === 'VI' || userClass === '6';
+        const isClass7 = userClass === 'VII' || userClass === '7';
+        const isClass8 = userClass === 'VIII' || userClass === '8';
+        const isClass9 = userClass === 'IX' || userClass === '9';
+        
+        const relevantSyllabus = isClass6 ? syllabus6 : isClass7 ? syllabus7 : isClass8 ? syllabus8 : isClass9 ? syllabus9 : defaultSyllabus;
 
-      const response = await ai.getGenerativeModel({ 
-        model: modelName,
-        systemInstruction: finalSystemInstruction
-      }).generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-          responseMimeType: isJson ? "application/json" : "text/plain",
+        // Custom model identity statement
+        const modelBranding = `\n\nMODEL IDENTITY: You are powered by ${currentModel}, a high-performance generative AI model.`;
+
+        const finalSystemInstruction = userClass 
+          ? `${systemInstruction}${securityConstraint}${relevantSyllabus}${modelBranding}\n\nCORE CONSTRAINT: The application is serving a student of CLASS ${userClass}. Ensure all explanations, vocabulary, question complexity, and curriculum depth are precisely tailored for a Class ${userClass} student.\n\nMATH & SYMBOLIC NOTATION: NEVER use LaTeX, TeX, or any math delimiters like $ or $$. Use ONLY standard algebraic notation and plain Unicode symbols. For example, write x^2 instead of $x^2$, use √ for square roots, ∛ for cube roots, and standard parentheses for grouping. For multiplication, use * or standard juxtaposition (e.g. 3x). Expressions must look like they are typed in a normal text editor. Examples: 3(x+2) + 4(x-1), √144 + ∛27, (a+b)^2 = a^2 + 2ab + b^2.`
+          : `${systemInstruction}${securityConstraint}${defaultSyllabus}${modelBranding}\n\nMATH & SYMBOLIC NOTATION: NEVER use LaTeX, TeX, or any math delimiters like $ or $$. Use ONLY standard algebraic notation and plain Unicode symbols. For example, write x^2 instead of $x^2$, use √ for square roots, ∛ for cube roots. Expressions must look like they are typed in a normal text editor. Examples: 3(x+2) + 4(x-1), √144 + ∛27.`;
+
+        const config: any = {
+          systemInstruction: finalSystemInstruction,
           temperature: 0.7,
-        }
-      });
+        };
 
-      const text = response.response.text();
-      if (!text) {
-        throw new Error("No text returned from Gemini API");
-      }
+        if (isJson) {
+          config.responseMimeType = "application/json";
+          
+          const isMcqOrQuiz = 
+            systemInstruction.toLowerCase().includes("mcq") || 
+            systemInstruction.toLowerCase().includes("quiz") ||
+            prompt.toLowerCase().includes("quiz") ||
+            prompt.toLowerCase().includes("mcq");
 
-      return text;
-    } catch (error: any) {
-      const status = error?.status;
-      
-      if (status === 429 && retries < maxRetries) {
-        const delay = baseDelay * Math.pow(2, retries);
-        console.warn(`Gemini API rate limited. Retrying in ${delay}ms... (Attempt ${retries + 1}/${maxRetries})`);
-        await sleep(delay);
-        retries++;
-        continue;
-      }
+          if (isMcqOrQuiz) {
+            config.responseSchema = {
+              type: Type.OBJECT,
+              properties: {
+                title: {
+                  type: Type.STRING,
+                  description: "The title of the quiz, cleanly formatted"
+                },
+                questions: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      id: {
+                        type: Type.INTEGER,
+                        description: "Question sequential ID starting at 1"
+                      },
+                      question: {
+                        type: Type.STRING,
+                        description: "The multiple choice question. Strictly avoid HTML, LaTeX, $ characters, and unescaped double quotes inside."
+                      },
+                      options: {
+                        type: Type.ARRAY,
+                        items: { type: Type.STRING },
+                        description: "Exactly 4 options"
+                      },
+                      correctAnswer: {
+                        type: Type.INTEGER,
+                        description: "Zero-based index of correct option (0, 1, 2, or 3)"
+                      },
+                      explanation: {
+                        type: Type.STRING,
+                        description: "A robust pedagogical explanation of why this answer is correct"
+                      }
+                    },
+                    required: ["id", "question", "options", "correctAnswer", "explanation"]
+                  }
+                }
+              },
+              required: ["title", "questions"]
+            };
+          }
+        }
 
-      console.error("Gemini API Error details:", error);
-      
-      if (status === 403) {
-        throw new Error("Portal Permission Error: The system does not have permission to access the AI model. Please contact support.");
-      }
-      
-      if (error instanceof Error) {
-        if (error.message.includes("API_KEY_INVALID")) {
-          throw new Error("Portal Server Error: Invalid API Key. Please contact system admin.");
+        const response = await ai.models.generateContent({
+          model: currentModel,
+          contents: prompt,
+          config: config
+        });
+
+        const text = response.text;
+        if (!text) {
+          throw new Error(`Empty response was returned from the model ${currentModel}`);
         }
-        if (status === 429) {
-          throw new Error("The AI model is currently experiencing high demand. Please wait a moment and try again.");
+
+        console.log(`[GeminiService] Successfully retrieved content using model: ${currentModel}`);
+        return text;
+      } catch (error: any) {
+        lastError = error;
+        const status = error?.status || error?.status_code;
+        console.warn(`[GeminiService] Warning: Request with model ${currentModel} failed (Status: ${status}).`, error);
+
+        // If it's a rate limit or server error, sleep/retry inside the same model
+        if ((status === 429 || status >= 500) && retries < maxRetries) {
+          const delay = baseDelay * Math.pow(2, retries);
+          console.warn(`[GeminiService] Model ${currentModel} rate limited or overloaded. Retrying in ${delay}ms...`);
+          await sleep(delay);
+          retries++;
+          continue;
         }
-        throw error;
+
+        // If retry limit was hit or another error status occurred, break to continue to next model
+        console.warn(`[GeminiService] Moving onto the next fallback model...`);
+        break;
       }
-      throw new Error("Error occurred while connecting to the Portal server.");
     }
   }
-  throw new Error("Max retries reached for AI request.");
+
+  // Handle final error if all models in the pool failed
+  console.error("[GeminiService] Fatal: All standard and fallback Gemini models were exhausted and failed.", lastError);
+  
+  const status = lastError?.status || lastError?.status_code;
+  if (status === 403) {
+    throw new Error("Portal Permission Error: The system does not have permission to access the AI service. Please contact system admin.");
+  }
+  
+  if (lastError instanceof Error) {
+    if (lastError.message.includes("API_KEY_INVALID")) {
+      throw new Error("Portal Server Error: Invalid API Key. Please notify your administrator.");
+    }
+    if (status === 429) {
+      throw new Error("All active AI models are currently experiencing heavy traffic. Please wait a few seconds and try again.");
+    }
+    throw lastError;
+  }
+  
+  throw new Error("All available AI modules are momentarily offline or busy. Please try again soon.");
 };
 
 export const prompts = {
@@ -145,6 +319,7 @@ export const prompts = {
 
 CURRICULUM KNOWLEDGE:
 You MUST follow the OFFICIAL NCERT BOOKS AND SYLLABUS as available on the NCERT website (ncert.nic.in).
+If the grade is Class 6, you MUST follow the "Curiosity" Science book and "Ganita Prakash" Math book.
 If the grade is Class 7, you MUST follow the "Curiosity" Science book and "Ganita Prakash" Math book (Part 1/2).
 If the grade is Class 8, you MUST follow the "Curiosity" Science book and "Ganita Prakash" Math book. Note that Ganita Prakash has Part I and Part II, each starting with Chapter 1.
 If the grade is Class 9, you MUST follow the STRICT 2026-27 CHAPTER SEQUENCE defined in your system instruction for the "Exploration" Science book and "Ganita Manjari" Math book.
@@ -207,6 +382,7 @@ Use structured Markdown format.`,
 
 CURRICULUM ALIGNMENT:
 Follow the OFFICIAL NCERT BOOKS AND SYLLABUS as available on ncert.nic.in for the applicable grade.
+If the grade is Class 6, follow "Curiosity" Science and "Ganita Prakash" Math.
 If the grade is Class 7, follow "Curiosity" Science and "Ganita Prakash" Math (Part 1/2).
 If the grade is Class 8, you MUST follow "Curiosity" Science and "Ganita Prakash" Math (Part I/II).
 If the grade is Class 9, follow the specific sequence provided in your system instructions (e.g. Class 9 Science Ch 2 is 'Cell: The Building Block of Life').
@@ -294,7 +470,7 @@ SECURITY & PRIVACY:
 STYLE:
 - Avoid excessive slang or casual emojis.
 - Maintain a formal and refined linguistic style.`,
-  mcqGenerator: `You are a professional MCQ generator for St Michael's School. Generate a list of exactly 10 MCQs in JSON format matching the NCERT 2026-27 standards. For Class 7 and Class 8 Math, strictly follow the specified Part 1/2 or Part I/II syllabus.
+  mcqGenerator: `You are a professional MCQ generator for St Michael's School. Generate a list of exactly 10 MCQs in JSON format matching the NCERT 2026-27 standards. For Class 6, follow Curiosity Science and Ganita Prakash Math. For Class 7 and Class 8 Math, strictly follow the specified Part 1/2 or Part I/II syllabus.
   
   JSON STRUCTURE:
   {

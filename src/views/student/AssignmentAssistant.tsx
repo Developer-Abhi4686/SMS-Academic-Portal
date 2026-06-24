@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { MessageSquare, Send, RotateCcw, Copy, Camera, FileText, ArrowLeft } from 'lucide-react';
+import { MessageSquare, Send, RotateCcw, Copy, Camera, FileText, ArrowLeft, PenTool } from 'lucide-react';
 import { getGeminiResponse, prompts } from '../../lib/geminiService';
 import MarkdownRenderer from '../../components/MarkdownRenderer';
 import { useSessionState } from '../../lib/hooks';
@@ -38,7 +38,7 @@ export default function AssignmentAssistant({ userClass, onBack }: { userClass: 
           )}
           <div className="w-12 h-12 rounded-xl bg-black/5 flex items-center justify-center border border-[#e9ecef] shadow-sm">
             {mode === 'assignment' ? (
-              <MessageSquare className="w-6 h-6 text-[#0066CC]" />
+              <PenTool className="w-6 h-6 text-[#0066CC]" />
             ) : (
               <FileText className="w-6 h-6 text-[#0066CC]" />
             )}

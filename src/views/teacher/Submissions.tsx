@@ -1,36 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  FileText, 
-  Search, 
-  ArrowLeft, 
-  Clock, 
-  Eye, 
-  CheckCircle, 
-  XCircle,
-  FileDown,
-  User,
-  Calendar,
-  X,
-  FolderOpen,
-  Filter,
-  ArrowRight
+  FileText, Search, ArrowLeft, Clock, Eye, 
+  CheckCircle2, XCircle, FileDown, FolderOpen, 
+  Filter, Check, ArrowRight, MessageSquare, RefreshCw,
+  AlertCircle, ChevronDown, HelpCircle
 } from 'lucide-react';
-import { supabaseStorage } from '../../lib/supabaseStorage';
+import { createClient } from '../../../utils/supabase/client';
+
+const supabase = createClient();
+
+interface Student {
+  id: string;
+  name: string;
+}
 
 interface Submission {
   id: string;
-  studentId: string;
-  studentName: string;
-  admnNo: string;
+  created_at: string;
+  student_id: string;
   class: string;
   section: string;
-  type: string;
-  method: 'text' | 'file' | 'photo';
-  content: string;
-  fileName?: string;
-  status: 'pending' | 'approved' | 'rejected';
-  createdAt: any;
+  assignment_name: string;
+  file_url: string;
+  status: string;
+  teacher_comment: string | null;
 }
 
 interface SubmissionsProps {
@@ -40,335 +34,475 @@ interface SubmissionsProps {
 }
 
 export default function Submissions({ onBack, userClass, userSection }: SubmissionsProps) {
+  const [selectedClass, setSelectedClass] = useState(userClass || 'X');
+  const [selectedSection, setSelectedSection] = useState(userSection || 'A');
+  const [studentsMap, setStudentsMap] = useState<Record<string, string>>({});
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedStudentAdmn, setSelectedStudentAdmn] = useState<string | null>(null);
-  const [selectedSub, setSelectedSub] = useState<Submission | null>(null);
+  
+  // Review drawer/inspection states
+  const [selectedSubId, setSelectedSubId] = useState<string | null>(null);
+  const [commentInput, setCommentInput] = useState<string>('');
+  const [updatingSubId, setUpdatingSubId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const fetchSubmissions = async () => {
+  // Fetch student catalog to resolve names
+  const fetchStudentsCatalog = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('students')
+        .select('id, name');
+      
+      if (!error && data) {
+        const dict: Record<string, string> = {};
+        data.forEach(s => {
+          dict[String(s.id)] = s.name;
+        });
+        setStudentsMap(dict);
+      }
+    } catch (e) {
+      console.warn("Failed to lookup student names mapping:", e);
+    }
+  };
+
+  // Fetch submissions for chosen class + section
+  const fetchClassSubmissions = async () => {
     setLoading(true);
     try {
-      const docs = await supabaseStorage.getSubmissions(userClass || '', userSection || '');
-      
-      // Sort in memory to avoid index requirements
-      docs.sort((a, b) => {
-        const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
-        const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
-        return dateB.getTime() - dateA.getTime();
-      });
+      const { data, error } = await supabase
+        .from('submissions')
+        .select('*')
+        .eq('class', selectedClass)
+        .eq('section', selectedSection)
+        .order('id', { ascending: false });
 
-      setSubmissions(docs);
-    } catch (error) {
-      console.error("Fetch failed:", error);
+      if (error) throw error;
+      setSubmissions(data || []);
+    } catch (err) {
+      console.error("Failed to read class submissions:", err);
+      setSubmissions([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // Initial load students name directory
   useEffect(() => {
-    if (userClass && userSection) {
-      fetchSubmissions();
-    }
-  }, [userClass, userSection]);
+    fetchStudentsCatalog();
+  }, []);
 
-  const updateStatus = async (id: string, status: 'approved' | 'rejected') => {
+  // Reload files when class/section filters shift
+  useEffect(() => {
+    fetchClassSubmissions();
+    setSelectedSubId(null);
+  }, [selectedClass, selectedSection]);
+
+  // Load comment when selected submission shifts
+  useEffect(() => {
+    if (selectedSubId) {
+      const activeObj = submissions.find(s => s.id === selectedSubId);
+      setCommentInput(activeObj?.teacher_comment || '');
+    } else {
+      setCommentInput('');
+    }
+  }, [selectedSubId, submissions]);
+
+  // Handle Approve Action
+  const handleApprove = async (id: string) => {
+    setUpdatingSubId(id);
     try {
-      await supabaseStorage.updateSubmissionStatus(id, status);
-      setSubmissions(prev => prev.map(s => s.id === id ? { ...s, status } : s));
-      if (selectedSub?.id === id) {
-        setSelectedSub({ ...selectedSub, status });
-      }
-    } catch (err) {
-      alert("Update failed");
+      const { error } = await supabase
+        .from('submissions')
+        .update({ status: 'Approved' })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Update local state
+      setSubmissions(prev => 
+        prev.map(s => s.id === id ? { ...s, status: 'Approved' } : s)
+      );
+    } catch (err: any) {
+      alert("Approval status update failed: " + err.message);
+    } finally {
+      setUpdatingSubId(null);
     }
   };
 
-  // Group submissions by student (admnNo)
-  const groupedSubmissions = submissions.reduce((acc, sub) => {
-    const key = (sub.admnNo || '').trim().toUpperCase();
-    if (!acc[key]) {
-      acc[key] = {
-        studentName: sub.studentName,
-        admnNo: sub.admnNo,
-        items: []
-      };
+  // Handle Deny Action
+  const handleDeny = async (id: string) => {
+    setUpdatingSubId(id);
+    try {
+      const { error } = await supabase
+        .from('submissions')
+        .update({ status: 'Denied' })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      // Update local state
+      setSubmissions(prev => 
+        prev.map(s => s.id === id ? { ...s, status: 'Denied' } : s)
+      );
+    } catch (err: any) {
+      alert("Denial status update failed: " + err.message);
+    } finally {
+      setUpdatingSubId(null);
     }
-    acc[key].items.push(sub);
-    return acc;
-  }, {} as Record<string, { studentName: string, admnNo: string, items: Submission[] }>);
+  };
 
-  const studentsList = Object.values(groupedSubmissions);
+  // Save/Update Teacher Comment field
+  const handleSaveComment = async (id: string) => {
+    setUpdatingSubId(id);
+    try {
+      const { error } = await supabase
+        .from('submissions')
+        .update({ teacher_comment: commentInput.trim() || null })
+        .eq('id', id);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <div className="w-12 h-12 border-4 border-[#0066CC] border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-[#0066CC] font-black text-xs uppercase tracking-widest">Scanning Repository...</p>
-      </div>
-    );
-  }
+      if (error) throw error;
+
+      // Update local state
+      setSubmissions(prev => 
+        prev.map(s => s.id === id ? { ...s, teacher_comment: commentInput.trim() || null } : s)
+      );
+      
+      alert("Feedback comments saved successfully!");
+    } catch (err: any) {
+      alert("Feedback write failed: " + err.message);
+    } finally {
+      setUpdatingSubId(null);
+    }
+  };
+
+  const filteredSubmissions = submissions.filter(sub => {
+    const studentName = (studentsMap[sub.student_id] || 'Unknown Pupil').toLowerCase();
+    const assignmentName = (sub.assignment_name || '').toLowerCase();
+    const query = searchQuery.toLowerCase();
+    return studentName.includes(query) || assignmentName.includes(query);
+  });
+
+  const selectedSub = submissions.find(s => s.id === selectedSubId);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-12 pb-20">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="flex items-center gap-6">
+    <div className="max-w-6xl mx-auto space-y-6 pb-24 selection:bg-rose-100">
+      
+      {/* ACTION HEADER BAR */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/60">
+        <div className="flex items-center gap-3">
           {onBack && (
-            <button onClick={onBack} className="p-4 bg-white border border-[#e7e5e4] text-[#0066CC] rounded-2xl shadow-sm">
+            <button 
+              onClick={onBack}
+              className="p-2 -ml-2 text-neutral-500 hover:text-slate-950 hover:bg-slate-100 rounded-full transition-all cursor-pointer"
+              title="Go Back"
+            >
               <ArrowLeft className="w-5 h-5" />
             </button>
           )}
+          <div className="p-2.5 rounded-xl bg-rose-50 text-rose-600">
+            <FileText className="w-5 h-5" />
+          </div>
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-[#0066CC]">Student Record Management</span>
-            </div>
-            <h1 className="text-4xl font-black uppercase tracking-tighter">Documentation <span className="font-editorial text-[#0066CC]">Folders</span></h1>
-            <p className="text-[#57534e] text-xs font-medium">Registry for Class {userClass}-{userSection}</p>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-none uppercase">
+              Teacher Assessment Ledger
+            </h1>
+            <p className="text-slate-400 font-mono font-bold text-[9px] uppercase tracking-wider mt-1.5">
+              Grade Class Portals · Review and Appraise Real-Time Submissions
+            </p>
           </div>
         </div>
-      </header>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* List View */}
-        <div className="lg:col-span-2 space-y-4">
-          <AnimatePresence mode="wait">
-            {!selectedStudentAdmn ? (
-              <motion.div
-                key="student-list"
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-              >
-                {studentsList.map((student) => {
-                  const pendingCount = student.items.filter(i => i.status === 'pending').length;
-                  const normalizedAdmn = student.admnNo.trim().toUpperCase();
-                  return (
-                    <button
-                      key={normalizedAdmn}
-                      onClick={() => setSelectedStudentAdmn(normalizedAdmn)}
-                      className="w-full text-left bg-white p-8 rounded-[3rem] border border-[#e7e5e4] transition-all flex flex-col justify-between group hover:border-[#0066CC] hover:shadow-2xl hover:translate-y-[-4px]"
-                    >
-                      <div className="flex justify-between items-start mb-6">
-                        <div className="w-16 h-16 rounded-[1.5rem] bg-black/5 flex items-center justify-center text-[#0066CC] group-hover:bg-[#0066CC] group-hover:text-white transition-colors">
-                          <FolderOpen className="w-8 h-8" />
-                        </div>
-                        {pendingCount > 0 && (
-                          <div className="px-4 py-2 bg-rose-500 text-white rounded-full shadow-lg shadow-rose-200">
-                            <span className="text-[8px] font-black uppercase tracking-widest">{pendingCount} New Items</span>
-                          </div>
+      {/* FILTER SHEET & CONTROL GRID */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs">
+        
+        <div className="flex flex-wrap items-center gap-3">
+          {/* CLASS SELECTOR */}
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+            <Filter className="w-3.5 h-3.5 text-slate-400" />
+            <select
+              value={selectedClass}
+              onChange={(e) => setSelectedClass(e.target.value)}
+              className="bg-transparent font-bold text-xs text-slate-700 outline-none cursor-pointer"
+            >
+              {['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'].map(c => (
+                <option key={c} value={c}>Class {c}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* SECTION SELECTOR */}
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
+            <select
+              value={selectedSection}
+              onChange={(e) => setSelectedSection(e.target.value)}
+              className="bg-transparent font-bold text-xs text-slate-700 outline-none cursor-pointer"
+            >
+              {['A', 'B', 'C', 'D', 'E'].map(s => (
+                <option key={s} value={s}>Section {s}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* SYNC TRIGGER FOR LIVE SUBMISSIONS */}
+          <button
+            onClick={fetchClassSubmissions}
+            className="p-2 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-950 transition-colors"
+            title="Reload registry database list"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* SEARCH FILTER */}
+        <div className="relative w-full md:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+          <input 
+            type="text"
+            placeholder="Search student or task..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-slate-50 border border-transparent focus:border-slate-300 rounded-xl pl-9 pr-4 py-1.5 font-bold text-xs text-slate-700 outline-none transition-all"
+          />
+        </div>
+      </div>
+
+      {/* TWO PARTITIONS BOARD */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* LEFT COLUMN: MATCHING SUBMISSIONS LIST TABLE */}
+        <div className="lg:col-span-7 bg-white border border-slate-200/80 rounded-2xl shadow-xs p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 font-mono">
+              Delivery Catalog ({filteredSubmissions.length})
+            </h3>
+            <span className="text-[9px] text-slate-400 font-mono">
+              Filtered for Grade {selectedClass}-{selectedSection}
+            </span>
+          </div>
+
+          <div className="space-y-2.5 max-h-[500px] overflow-y-auto pr-1 dropdown-scroll custom-scrollbar">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-24 gap-2 text-slate-400">
+                <RefreshCw className="w-7 h-7 animate-spin text-rose-400" />
+                <p className="font-mono text-[8.5px] uppercase tracking-wider">Syncing submissions index...</p>
+              </div>
+            ) : filteredSubmissions.length === 0 ? (
+              <div className="text-center py-20 text-slate-400 border border-dashed border-slate-100 rounded-xl bg-slate-50/50">
+                <HelpCircle className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+                <p className="text-xs font-semibold text-slate-500">No submissions discovered</p>
+                <p className="text-[8.5px] text-slate-400 max-w-xs mx-auto mt-1 uppercase leading-relaxed font-medium">
+                  Students have not dispatched any assignments under Class {selectedClass}-{selectedSection} yet.
+                </p>
+              </div>
+            ) : (
+              filteredSubmissions.map((sub) => {
+                const isSelected = selectedSubId === sub.id;
+                const studentName = studentsMap[sub.student_id] || 'Unknown Pupil';
+                const isPending = sub.status?.toLowerCase() === 'pending';
+                const isApproved = sub.status?.toLowerCase() === 'approved';
+                const isDenied = sub.status?.toLowerCase() === 'denied' || sub.status?.toLowerCase() === 'rejected';
+
+                return (
+                  <motion.div
+                    key={sub.id}
+                    whileHover={{ scale: 1.005, x: 1 }}
+                    onClick={() => setSelectedSubId(sub.id)}
+                    className={`p-3.5 rounded-xl border flex items-center justify-between gap-4 cursor-pointer select-none transition-all ${
+                      isSelected 
+                        ? 'border-rose-300 bg-rose-50/15 ring-1 ring-rose-300/10 shadow-xs' 
+                        : 'border-slate-100 bg-white hover:border-slate-200'
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0 pr-2 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[8px] font-mono font-bold text-slate-400 uppercase tracking-wide">
+                          ID #{sub.id}
+                        </span>
+                        {sub.teacher_comment && (
+                          <span title="Feedback comment added">
+                            <MessageSquare className="w-3 h-3 text-amber-500" />
+                          </span>
                         )}
                       </div>
-                      <div>
-                        <h3 className="text-xl font-black text-[#1c1917] uppercase tracking-tighter leading-tight group-hover:text-[#0066CC] transition-colors">
-                          {student.studentName}
-                        </h3>
-                        <p className="text-[9px] font-black text-[#57534e] uppercase tracking-[0.2em] mt-2 opacity-50">
-                          Admn No: {student.admnNo} &bull; {student.items.length} Files
-                        </p>
-                      </div>
-                    </button>
-                  );
-                })}
+                      <h4 className="font-black text-slate-800 text-[11.5px] uppercase tracking-tight truncate">
+                        {studentName}
+                      </h4>
+                      <p className="text-[10px] text-slate-500 font-semibold uppercase leading-tight line-clamp-1">
+                        {sub.assignment_name}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0">
+                      {/* State Pills */}
+                      {isPending && (
+                        <span className="flex items-center gap-1 bg-slate-50 text-slate-600 font-mono font-bold text-[8px] uppercase px-2 py-0.5 rounded border border-slate-100">
+                          <Clock className="w-2.5 h-2.5" />
+                          Pending
+                        </span>
+                      )}
+                      {isApproved && (
+                        <span className="flex items-center gap-1 bg-emerald-50 text-emerald-700 font-mono font-bold text-[8px] uppercase px-2 py-0.5 rounded border border-emerald-100">
+                          <CheckCircle2 className="w-2.5 h-2.5" />
+                          Approved
+                        </span>
+                      )}
+                      {isDenied && (
+                        <span className="flex items-center gap-1 bg-rose-50 text-rose-700 font-mono font-bold text-[8px] uppercase px-2 py-0.5 rounded border border-rose-100">
+                          <XCircle className="w-2.5 h-2.5" />
+                          Denied
+                        </span>
+                      )}
+
+                      <ArrowRight className={`w-4 h-4 text-slate-300 transition-transform ${isSelected ? 'translate-x-1 text-rose-500' : ''}`} />
+                    </div>
+                  </motion.div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: DETAILED REVIEW DRAWER / EDIT BLOCK */}
+        <div className="lg:col-span-5 bg-white border border-slate-200/80 rounded-2xl shadow-xs p-5 space-y-5 sticky top-6">
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 font-mono border-b border-slate-100 pb-2.5">
+            Active Review Panel
+          </h3>
+
+          <AnimatePresence mode="wait">
+            {!selectedSub ? (
+              <motion.div 
+                key="blank"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-20 text-slate-400 space-y-2"
+              >
+                <Eye className="w-10 h-10 text-slate-300 mx-auto" />
+                <div>
+                  <h4 className="text-xs font-bold text-slate-600">No Document Selected</h4>
+                  <p className="text-[9px] text-slate-400 uppercase max-w-xs mx-auto mt-0.5 normal-case">
+                    Click any student submittal row on the left catalog sheet to review physical files, set status, and provide comments.
+                  </p>
+                </div>
               </motion.div>
             ) : (
               <motion.div
-                key="submission-list"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
+                key="active-review"
+                initial={{ opacity: 0, scale: 0.98, y: 5 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.98, y: -5 }}
                 className="space-y-4"
               >
-                <div className="flex items-center justify-between mb-8">
-                  <button 
-                    onClick={() => setSelectedStudentAdmn(null)}
-                    className="flex items-center gap-3 text-[#0066CC] font-black text-[10px] uppercase tracking-widest hover:translate-x-[-4px] transition-transform bg-white px-5 py-3 rounded-full border border-[#e7e5e4] shadow-sm"
-                  >
-                    <ArrowLeft className="w-3 h-3" />
-                    Close Student Folder
-                  </button>
-                  <p className="text-[10px] font-black font-mono text-[#57534e] uppercase tracking-widest opacity-40">Classified Documents Only</p>
-                </div>
-
-                <div className="bg-[#0066CC] rounded-[3rem] p-10 text-white shadow-xl relative overflow-hidden mb-8">
-                  <div className="absolute top-[-20px] right-[-20px] opacity-10">
-                    <FolderOpen className="w-48 h-48" />
+                <div className="p-4 bg-slate-50/60 rounded-xl border border-slate-100 space-y-2.5">
+                  <div className="space-y-0.5">
+                    <span className="text-[8.5px] font-mono font-black text-rose-500 uppercase">
+                      Class {selectedSub.class}-{selectedSub.section} Submission
+                    </span>
+                    <h2 className="text-md font-black text-slate-900 uppercase tracking-tight">
+                      {studentsMap[selectedSub.student_id] || 'Unknown Pupil'}
+                    </h2>
                   </div>
-                  <div className="relative z-10">
-                    <p className="text-[11px] font-black uppercase tracking-[0.3em] opacity-60 mb-2">Internal Registry For</p>
-                    <h2 className="text-4xl font-black uppercase tracking-tighter leading-none">{groupedSubmissions[selectedStudentAdmn].studentName}</h2>
-                    <div className="flex items-center gap-4 mt-6">
-                       <span className="px-4 py-2 bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10">ID: {selectedStudentAdmn}</span>
-                       <span className="px-4 py-2 bg-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/10">{groupedSubmissions[selectedStudentAdmn].items.length} Submissions Found</span>
+
+                  <div className="text-xs text-slate-700 font-bold uppercase tracking-tight py-1 bg-white border border-slate-100 px-3 rounded-lg leading-snug">
+                    Task: <span className="text-slate-950 font-black">{selectedSub.assignment_name}</span>
+                  </div>
+
+                  {/* Attachment Asset Download */}
+                  {selectedSub.file_url ? (
+                    <div className="flex items-center justify-between p-2 bg-rose-500/5 text-[9.5px] rounded-lg border border-rose-100">
+                      <div className="flex items-center gap-2 text-rose-950 font-bold truncate">
+                        <FileText className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                        <span className="truncate">Physical Assignment File</span>
+                      </div>
+                      <a 
+                        href={selectedSub.file_url}
+                        target="_blank"
+                        referrerPolicy="no-referrer"
+                        rel="noreferrer"
+                        className="flex items-center gap-1 px-2 py-1 bg-white hover:bg-rose-500 hover:text-white border border-rose-200 text-rose-600 rounded font-black uppercase text-[8.5px] transition-colors shadow-2xs"
+                      >
+                        <FileDown className="w-3 h-3" />
+                        View File
+                      </a>
                     </div>
+                  ) : (
+                    <div className="text-[10px] text-amber-600 font-bold">
+                      ⚠️ No physical file URL attached to this ledger ID.
+                    </div>
+                  )}
+                </div>
+
+                {/* APPROVE & DENY STATUS BUTTONS */}
+                <div className="space-y-1.5">
+                  <span className="text-[9px] font-bold uppercase text-slate-400 block tracking-wide">
+                    Set Grading Status
+                  </span>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => handleApprove(selectedSub.id)}
+                      disabled={updatingSubId !== null}
+                      className={`py-2 rounded-lg font-black uppercase tracking-wider text-[10px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer border ${
+                        selectedSub.status?.toLowerCase() === 'approved'
+                          ? 'bg-emerald-500 text-white border-transparent shadow-xs'
+                          : 'bg-white hover:bg-emerald-50 text-emerald-600 border-slate-200'
+                      }`}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Approve Work
+                    </button>
+
+                    <button
+                      onClick={() => handleDeny(selectedSub.id)}
+                      disabled={updatingSubId !== null}
+                      className={`py-2 rounded-lg font-black uppercase tracking-wider text-[10px] flex items-center justify-center gap-1.5 transition-colors cursor-pointer border ${
+                        selectedSub.status?.toLowerCase() === 'denied' || selectedSub.status?.toLowerCase() === 'rejected'
+                          ? 'bg-rose-500 text-white border-transparent shadow-xs'
+                          : 'bg-white hover:bg-rose-50 text-rose-600 border-slate-200'
+                      }`}
+                    >
+                      <XCircle className="w-3.5 h-3.5" />
+                      Deny Work
+                    </button>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  {groupedSubmissions[selectedStudentAdmn].items.map((sub) => (
-                    <button
-                      key={sub.id}
-                      onClick={() => setSelectedSub(sub)}
-                      className="w-full text-left bg-white p-6 rounded-[2.5rem] border border-[#e7e5e4] transition-all flex items-center justify-between group hover:border-[#0066CC] hover:shadow-lg"
-                    >
-                      <div className="flex items-center gap-6">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-sm ${
-                          sub.status === 'approved' ? 'bg-emerald-500' : sub.status === 'rejected' ? 'bg-red-500' : 'bg-[#0066CC]'
-                        }`}>
-                          <FileText className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h3 className="text-base font-black text-[#0066CC] uppercase tracking-tighter">{sub.type}</h3>
-                          <div className="flex items-center gap-3 mt-1">
-                            <span className="text-[9px] font-bold text-[#57534e] uppercase tracking-widest">{sub.createdAt?.toDate().toLocaleDateString()}</span>
-                            <span className="w-1 h-1 bg-neutral-200 rounded-full" />
-                            <span className="text-[9px] font-black text-[#0066CC] uppercase tracking-widest">{sub.method}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className={`px-4 py-2 rounded-full text-[8px] font-black uppercase tracking-widest border transition-colors ${
-                          sub.status === 'approved' ? 'border-emerald-500 text-emerald-600 bg-emerald-50' : 
-                          sub.status === 'rejected' ? 'border-red-500 text-red-600 bg-red-50' : 
-                          'border-[#0066CC]/20 text-[#0066CC] bg-[#f8f9fa]'
-                        }`}>
-                          {sub.status}
-                        </div>
-                        <ArrowRight className="w-4 h-4 text-[#0066CC] opacity-20 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                      </div>
-                    </button>
-                  ))}
+                {/* FEEDBACK COMMENTS EDIT PANEL */}
+                <div className="space-y-1.5">
+                  <label className="text-[9px] font-bold uppercase text-slate-400 block tracking-wide">
+                    Appraisal Notes & Comments
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={commentInput}
+                    onChange={(e) => setCommentInput(e.target.value)}
+                    placeholder="Enter grading evaluation or instructions for correction..."
+                    className="w-full bg-slate-50 border border-slate-200/80 focus:border-rose-400 rounded-xl px-3.5 py-2 font-semibold text-xs text-slate-700 outline-none transition-all resize-none"
+                  />
                 </div>
+
+                {/* SAVE APPRAISAL COMMENT BUTTON */}
+                <button
+                  onClick={() => handleSaveComment(selectedSub.id)}
+                  disabled={updatingSubId !== null}
+                  className="w-full bg-[#1A1A1A] hover:bg-[#2C2C2C] text-white disabled:opacity-40 font-black uppercase tracking-widest text-[9.5px] py-2.5 rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                >
+                  {updatingSubId === selectedSub.id ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Check className="w-3.5 h-3.5" />
+                  )}
+                  Save Appraisal Note
+                </button>
+                
               </motion.div>
             )}
           </AnimatePresence>
 
-          {submissions.length === 0 && (
-            <div className="text-center py-20 bg-neutral-50 rounded-[3rem] border-2 border-dashed border-neutral-200">
-              <Clock className="w-12 h-12 text-[#57534e] opacity-20 mx-auto mb-4" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#57534e] opacity-40">No Folders Created Yet</p>
-            </div>
-          )}
         </div>
 
-        {/* Status / Detail Card Preview */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-[3rem] border border-[#e7e5e4] p-8 shadow-sm h-fit sticky top-8">
-            <h2 className="text-xl font-black text-[#0066CC] uppercase tracking-tighter mb-8 border-b border-neutral-100 pb-4">Activity Summary</h2>
-            <div className="space-y-6">
-              <div className="flex justify-between items-center bg-black/5 p-6 rounded-[2rem]">
-                <div>
-                  <p className="text-2xl font-black text-[#0066CC]">{submissions.filter(s => s.status === 'pending').length}</p>
-                  <p className="text-[10px] font-black text-[#57534e] uppercase tracking-widest mt-1">Pending Docs</p>
-                </div>
-                <Clock className="w-8 h-8 text-[#0066CC] opacity-30" />
-              </div>
-              
-              <div className="flex justify-between items-center bg-emerald-50 p-6 rounded-[2rem]">
-                <div>
-                  <p className="text-2xl font-black text-emerald-600">{submissions.filter(s => s.status === 'approved').length}</p>
-                  <p className="text-[10px] font-black text-[#57534e] uppercase tracking-widest mt-1">Approved</p>
-                </div>
-                <CheckCircle className="w-8 h-8 text-emerald-600 opacity-30" />
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* Selected Submission Viewer Overlay */}
-      <AnimatePresence>
-        {selectedSub && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1c1917]/90 backdrop-blur-md"
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 40 }}
-              animate={{ scale: 1, y: 0 }}
-              className="bg-white rounded-[3rem] w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl relative"
-            >
-              <button onClick={() => setSelectedSub(null)} className="absolute top-8 right-8 text-[#57534e] hover:text-[#0066CC] p-2 z-10">
-                <X className="w-6 h-6" />
-              </button>
-
-              <div className="p-10 border-b border-[#e7e5e4] flex flex-col md:flex-row justify-between gap-6">
-                <div>
-                  <h3 className="text-3xl font-black uppercase tracking-tighter text-[#0066CC]">{selectedSub.type}</h3>
-                  <div className="flex items-center gap-4 mt-2">
-                    <div className="flex items-center gap-2 text-xs font-bold text-[#57534e]">
-                      <User className="w-4 h-4" />
-                      <span>{selectedSub.studentName}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs font-bold text-[#57534e]">
-                      <Calendar className="w-4 h-4" />
-                      <span>{selectedSub.createdAt?.toDate().toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex gap-4">
-                  <button 
-                    onClick={() => updateStatus(selectedSub.id, 'approved')}
-                    className="flex-1 px-8 py-3 bg-emerald-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-600 transition-all shadow-lg"
-                  >
-                    Approve
-                  </button>
-                  <button 
-                    onClick={() => updateStatus(selectedSub.id, 'rejected')}
-                    className="flex-1 px-8 py-3 bg-red-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-red-600 transition-all shadow-lg"
-                  >
-                    Reject
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-12 custom-scrollbar bg-[#fcfcfc]">
-                <div className="bg-white border border-[#e7e5e4] rounded-[2.5rem] p-10 shadow-sm min-h-[400px]">
-                  {selectedSub.method === 'text' ? (
-                    <div className="whitespace-pre-wrap font-medium text-[#1c1917] leading-relaxed">
-                      {selectedSub.content}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-8">
-                       <img 
-                        src={selectedSub.content} 
-                        className="max-w-full rounded-2xl shadow-xl border border-neutral-100" 
-                        alt="Submission Content" 
-                       />
-                       <a 
-                        href={selectedSub.content} 
-                        download={selectedSub.fileName || "submission"}
-                        className="flex items-center gap-3 px-8 py-4 bg-[#f8f9fa] rounded-2xl font-black uppercase tracking-widest text-xs border border-neutral-200 hover:bg-white"
-                       >
-                         <FileDown className="w-4 h-4" /> Save Copy
-                       </a>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
-  );
-}
-
-function ChevronRight({ className }: { className?: string }) {
-  return (
-    <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      viewBox="0 0 24 24" 
-      fill="none" 
-      stroke="currentColor" 
-      strokeWidth="3" 
-      strokeLinecap="round" 
-      strokeLinejoin="round" 
-      className={className}
-    >
-      <path d="m9 18 6-6-6-6"/>
-    </svg>
   );
 }

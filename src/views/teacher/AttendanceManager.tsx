@@ -148,54 +148,54 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
 
   if (isSelectingDate) {
     return (
-      <div className="max-w-xl mx-auto py-12 px-6">
+      <div className="max-w-xl mx-auto py-6 sm:py-12 px-4 sm:px-6">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-panel p-10 rounded-[3.5rem] space-y-12 shadow-2xl"
+          className="glass-panel p-6 sm:p-10 rounded-3xl sm:rounded-[3.5rem] space-y-8 sm:space-y-12 shadow-2xl"
         >
           <header className="flex flex-col items-center text-center gap-4">
-             <div className="w-20 h-20 bg-primary/10 rounded-[2rem] flex items-center justify-center text-primary backdrop-blur-sm border border-primary/10 shadow-inner">
-               <Calendar className="w-10 h-10" />
+             <div className="w-16 h-16 sm:w-20 sm:h-20 bg-primary/10 rounded-2xl sm:rounded-[2rem] flex items-center justify-center text-primary backdrop-blur-sm border border-primary/10 shadow-inner">
+               <Calendar className="w-8 h-8 sm:w-10 sm:h-10" />
              </div>
              <div>
-               <h2 className="text-4xl font-bold tracking-tighter text-primary">Attendance Gateway</h2>
-               <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent mt-2">Class {userClass}-{userSection} Station</p>
+                <h2 className="text-2xl sm:text-4xl font-bold tracking-tighter text-primary">Class Attendance</h2>
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent mt-2">Class {userClass}-{userSection}</p>
              </div>
           </header>
 
-          <div className="space-y-8">
-            <div className="grid grid-cols-3 gap-6">
-              <div className="space-y-3">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted ml-3">Day</label>
+          <div className="space-y-6 sm:space-y-8">
+            <div className="grid grid-cols-3 gap-3 sm:gap-6">
+              <div className="space-y-2">
+                <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted ml-1 sm:ml-3">Day</label>
                 <select 
                   value={selDay}
                   onChange={e => setSelDay(e.target.value)}
-                  className="w-full bg-white/50 border border-white/40 p-5 rounded-3xl focus:border-accent outline-none font-bold text-center text-lg backdrop-blur-sm"
+                  className="w-full bg-white/50 border border-white/40 p-3 sm:p-5 rounded-xl sm:rounded-3xl focus:border-accent outline-none font-bold text-center text-sm sm:text-lg backdrop-blur-sm"
                 >
                   {Array.from({length: 31}, (_, i) => (i + 1).toString()).map(d => (
                     <option key={d} value={d}>{d}</option>
                   ))}
                 </select>
               </div>
-              <div className="space-y-3">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted ml-3">Month</label>
+              <div className="space-y-2">
+                <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted ml-1 sm:ml-3">Month</label>
                 <select 
                   value={selMonth}
                   onChange={e => setSelMonth(e.target.value)}
-                  className="w-full bg-white/50 border border-white/40 p-5 rounded-3xl focus:border-accent outline-none font-bold text-center text-lg backdrop-blur-sm"
+                  className="w-full bg-white/50 border border-white/40 p-3 sm:p-5 rounded-xl sm:rounded-3xl focus:border-accent outline-none font-bold text-center text-sm sm:text-lg backdrop-blur-sm"
                 >
                   {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((m, idx) => (
                     <option key={m} value={(idx + 1).toString()}>{m}</option>
                   ))}
                 </select>
               </div>
-              <div className="space-y-3">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-muted ml-3">Year</label>
+              <div className="space-y-2">
+                <label className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-muted ml-1 sm:ml-3">Year</label>
                 <select 
                   value={selYear}
                   onChange={e => setSelYear(e.target.value)}
-                  className="w-full bg-white/50 border border-white/40 p-5 rounded-3xl focus:border-accent outline-none font-bold text-center text-lg backdrop-blur-sm"
+                  className="w-full bg-white/50 border border-white/40 p-3 sm:p-5 rounded-xl sm:rounded-3xl focus:border-accent outline-none font-bold text-center text-sm sm:text-lg backdrop-blur-sm"
                 >
                   {[2024, 2025, 2026, 2027].map(y => (
                     <option key={y} value={y.toString()}>{y}</option>
@@ -209,7 +209,7 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
                 <motion.div 
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
-                  className="bg-red-50 text-red-600 p-4 rounded-2xl flex items-center gap-3 border border-red-100"
+                  className="bg-red-50 text-red-600 p-4 rounded-xl sm:rounded-2xl flex items-center gap-3 border border-red-100"
                 >
                   <AlertCircle className="w-5 h-5 shrink-0" />
                   <p className="text-[10px] font-bold uppercase tracking-widest">{error}</p>
@@ -220,17 +220,17 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
             <button
               onClick={fetchStudentsAndAttendance}
               disabled={loading}
-              className="w-full bg-primary text-white py-6 rounded-3xl font-bold uppercase text-[11px] tracking-[0.4em] shadow-2xl shadow-primary/20 flex items-center justify-center gap-4 hover:bg-primary-dark transition-all disabled:opacity-50"
+              className="w-full bg-primary text-white py-4 sm:py-6 rounded-2xl sm:rounded-3xl font-bold uppercase text-[10px] sm:text-[11px] tracking-[0.4em] shadow-2xl shadow-primary/20 flex items-center justify-center gap-4 hover:bg-primary-dark transition-all disabled:opacity-50"
             >
               {loading ? <RotateCcw className="w-5 h-5 animate-spin text-accent" /> : <ClipboardList className="w-5 h-5 text-accent" />}
-              {loading ? 'Accessing Archives...' : 'Mount Registry'}
+              {loading ? 'Loading...' : 'Open Attendance'}
             </button>
             
             <button
                onClick={onBack}
-               className="w-full bg-white/50 text-muted py-5 rounded-3xl font-bold uppercase text-[10px] tracking-[0.3em] border border-white/40 backdrop-blur-sm"
+               className="w-full bg-white/50 text-muted py-3 sm:py-5 rounded-2xl sm:rounded-3xl font-bold uppercase text-[9px] sm:text-[10px] tracking-[0.3em] border border-white/40 backdrop-blur-sm"
             >
-              Terminate Session
+              Go Back
             </button>
           </div>
         </motion.div>
@@ -242,7 +242,7 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <div className="w-12 h-12 border-4 border-[#0066CC] border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-[#0066CC] font-black text-xs uppercase tracking-widest tracking-[0.2em]">Syncing Archives...</p>
+        <p className="text-[#0066CC] font-black text-xs uppercase tracking-widest tracking-[0.2em]">Loading...</p>
       </div>
     );
   }
@@ -259,12 +259,12 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
           </button>
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-bold text-accent uppercase tracking-[0.3em]">Temporal Registry</span>
+              <span className="text-[10px] font-bold text-accent uppercase tracking-[0.3em]">Selected Date</span>
                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             </div>
             <h1 className="text-4xl font-bold tracking-tighter text-primary">{getReconstructedDate()}</h1>
             <p className="text-muted font-bold text-[10px] uppercase tracking-widest mt-1">
-               Session: Class {userClass}-{userSection}
+               Class: {userClass}-{userSection}
             </p>
           </div>
         </div>
@@ -273,7 +273,7 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
           {!isEditable() ? (
             <div className="flex items-center gap-2 bg-white/40 backdrop-blur-sm px-6 py-4 rounded-[2rem] font-bold text-[10px] uppercase tracking-widest border border-white/20 text-muted">
               <Lock className="w-4 h-4 text-accent" />
-              Locked Archive
+              Locked (Past 24h)
             </div>
           ) : isSubmitted ? (
             <button
@@ -281,7 +281,7 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
               className="flex items-center gap-3 bg-white/60 hover:bg-white px-8 py-4 rounded-[2rem] font-bold text-[10px] uppercase tracking-widest transition-all border border-white shadow-sm text-primary"
             >
               <Edit3 className="w-4 h-4 text-accent" />
-              Modify Log
+              Edit
             </button>
           ) : (
             <button
@@ -290,7 +290,7 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
               className="flex items-center gap-3 bg-primary text-white px-10 py-5 rounded-[2.5rem] font-bold text-[10px] uppercase tracking-[0.3em] hover:bg-primary-dark transition-all shadow-xl shadow-primary/20 disabled:opacity-50"
             >
               {saving ? <RotateCcw className="w-4 h-4 animate-spin text-accent" /> : <Save className="w-4 h-4 text-accent" />}
-              {saving ? 'Syncing...' : 'Establish State'}
+              {saving ? 'Saving...' : 'Save Attendance'}
             </button>
           )}
         </div>
@@ -304,17 +304,17 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
         >
            <AlertCircle className="w-6 h-6 text-amber-600" />
            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700 leading-relaxed">
-             Warning: Temporal Lock Active. This document index is outside the 24-hour modification window.
+             Warning: Past records cannot be changed.
            </p>
         </motion.div>
       )}
 
-      <div className="glass-panel rounded-[3.5rem] overflow-hidden">
-        <div className="px-8 py-6 border-b border-white/20 flex justify-between items-center bg-white/20 backdrop-blur-sm">
-          <span className="text-[10px] font-bold text-muted uppercase tracking-[0.3em]">Student Matrix</span>
+      <div className="glass-panel rounded-[2rem] sm:rounded-[3.5rem] overflow-hidden">
+        <div className="px-4 sm:px-8 py-4 sm:py-6 border-b border-white/20 flex justify-between items-center bg-white/20 backdrop-blur-sm">
+          <span className="text-[10px] font-bold text-muted uppercase tracking-[0.3em]">Student List</span>
           <div className="flex items-center gap-2">
             <UserCheck className="w-4 h-4 text-accent" />
-            <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">{students.length} Entries</span>
+            <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">{students.length} Students</span>
           </div>
         </div>
         <div className="divide-y divide-white/10">
@@ -324,19 +324,19 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.05 }}
-              className="px-8 py-6 flex items-center justify-between hover:bg-white/30 transition-colors group"
+              className="px-4 sm:px-8 py-4 sm:py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-white/30 transition-colors group"
             >
-              <div className="flex items-center gap-6">
-                <div className="w-14 h-14 rounded-3xl bg-primary/5 group-hover:bg-primary/10 flex items-center justify-center text-primary font-bold text-xl border border-primary/5 transition-all shadow-inner">
+              <div className="flex items-center gap-4 sm:gap-6 w-full sm:w-auto">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl sm:rounded-3xl bg-primary/5 group-hover:bg-primary/10 flex items-center justify-center text-primary font-bold text-lg sm:text-xl border border-primary/5 transition-all shadow-inner shrink-0">
                   {student.fullName.charAt(0)}
                 </div>
                 <div>
-                  <h4 className="font-bold text-primary text-lg tracking-tight">{student.fullName}</h4>
+                  <h4 className="font-bold text-primary text-base sm:text-lg tracking-tight">{student.fullName}</h4>
                   <div className="text-[9px] font-bold text-muted uppercase tracking-widest mt-0.5">Reference: {student.id.slice(-6)}</div>
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-2 sm:gap-3 w-full sm:w-auto justify-end">
                 {[
                   { value: 'P', color: 'bg-emerald-500', label: 'Present' },
                   { value: 'A', color: 'bg-rose-500', label: 'Absent' },
@@ -347,16 +347,16 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
                     disabled={isSubmitted || !isEditable()}
                     onClick={() => markAttendance(student.id, opt.value as any)}
                     className={`
-                      w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-sm transition-all relative
+                      w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold text-xs sm:text-sm transition-all relative shrink-0
                       ${attendance[student.id] === opt.value 
-                        ? `${opt.color} text-white shadow-lg scale-110 border-transparent` 
+                        ? `${opt.color} text-white shadow-lg scale-105 sm:scale-110 border-transparent` 
                         : 'bg-white/40 text-muted border border-white/60 hover:border-accent hover:text-accent'}
                       ${(isSubmitted || !isEditable()) ? 'cursor-not-allowed opacity-40' : 'cursor-pointer active:scale-90'}
                     `}
                   >
                     {opt.value}
                     {attendance[student.id] === opt.value && (
-                       <motion.div layoutId={`active-dot-${student.id}`} className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full border-2 border-inherit" />
+                       <motion.div layoutId={`active-dot-${student.id}`} className="absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-white rounded-full border-2 border-inherit" />
                     )}
                   </button>
                 ))}
@@ -366,40 +366,28 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
         </div>
       </div>
 
-      <div className="mx-4 glass-panel p-10 rounded-[3rem] flex flex-col md:flex-row items-center justify-between gap-10">
-        <div className="flex items-center gap-12">
+      <div className="mx-4 glass-panel p-6 sm:p-10 rounded-2xl sm:rounded-[3rem] flex flex-col md:flex-row items-center justify-center gap-6 sm:gap-10">
+        <div className="flex items-center gap-6 sm:gap-11">
           <div className="text-center">
-            <p className="text-4xl font-bold tracking-tighter text-emerald-500">
+            <p className="text-2xl sm:text-4xl font-bold tracking-tighter text-emerald-500">
               {students.filter(s => attendance[s.id] === 'P').length}
             </p>
-            <p className="text-[10px] font-bold text-muted uppercase tracking-[0.2em] mt-2">Presence</p>
+            <p className="text-[9px] sm:text-[10px] font-bold text-muted uppercase tracking-[0.2em] mt-1 sm:mt-2">Present</p>
           </div>
-          <div className="w-px h-12 bg-white/20" />
+          <div className="w-px h-10 sm:h-12 bg-white/20" />
           <div className="text-center">
-            <p className="text-4xl font-bold tracking-tighter text-rose-500">
+            <p className="text-2xl sm:text-4xl font-bold tracking-tighter text-rose-500">
               {students.filter(s => attendance[s.id] === 'A').length}
             </p>
-            <p className="text-[10px] font-bold text-muted uppercase tracking-[0.2em] mt-2">Absence</p>
+            <p className="text-[9px] sm:text-[10px] font-bold text-muted uppercase tracking-[0.2em] mt-1 sm:mt-2">Absent</p>
           </div>
-          <div className="w-px h-12 bg-white/20" />
+          <div className="w-px h-10 sm:h-12 bg-white/20" />
           <div className="text-center">
-            <p className="text-4xl font-bold tracking-tighter text-amber-500">
+            <p className="text-2xl sm:text-4xl font-bold tracking-tighter text-amber-500">
               {students.filter(s => attendance[s.id] === 'L').length}
             </p>
-            <p className="text-[10px] font-bold text-muted uppercase tracking-[0.2em] mt-2">Deferred</p>
+            <p className="text-[9px] sm:text-[10px] font-bold text-muted uppercase tracking-[0.2em] mt-1 sm:mt-2">Late</p>
           </div>
-        </div>
-        
-        <div className="bg-white/40 px-8 py-5 rounded-[2rem] border border-white flex items-center gap-4">
-             <div className="w-10 h-10 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
-                <ArrowRight className="w-5 h-5" />
-             </div>
-             <div>
-                <p className="text-[10px] font-bold text-primary uppercase tracking-widest leading-none">Matrix Saturation</p>
-                <p className="text-lg font-bold tracking-tighter text-primary mt-1">
-                   {Math.round((Object.keys(attendance).length / students.length) * 100 || 0)}% Synchronized
-                </p>
-             </div>
         </div>
       </div>
     </div>

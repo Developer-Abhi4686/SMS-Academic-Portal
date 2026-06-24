@@ -49,8 +49,8 @@ export default function SamplePaperGenerator({ userClass, onBack }: { userClass:
         </div>
       </header>
 
-      <div className="bg-surface border border-border-subtle p-8 rounded-[2.5rem] shadow-sm space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="bg-surface border border-border-subtle p-4 sm:p-8 rounded-[1.5rem] sm:rounded-[2.5rem] shadow-sm space-y-6 sm:space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <div className="space-y-2">
             <label className="text-[10px] font-bold uppercase tracking-widest text-muted pl-1">Target Subject</label>
             <div className="flex gap-2">
@@ -105,7 +105,7 @@ export default function SamplePaperGenerator({ userClass, onBack }: { userClass:
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-surface p-12 rounded-[3.5rem] border border-border-subtle shadow-sm relative overflow-hidden group"
+          className="bg-surface p-4 sm:p-12 rounded-[1.5rem] sm:rounded-[3.5rem] border border-border-subtle shadow-sm relative overflow-hidden group"
         >
           <div className="absolute top-0 left-0 w-2 h-full bg-primary/10 group-hover:bg-primary transition-colors" />
           <div className="absolute top-8 right-8 flex gap-3">
