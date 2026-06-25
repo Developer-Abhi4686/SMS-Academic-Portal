@@ -37,7 +37,6 @@ import Resources from './views/shared/Resources';
 import LessonPlanner from './views/teacher/LessonPlanner';
 import AttendanceManager from './views/teacher/AttendanceManager';
 import Submissions from './views/teacher/Submissions';
-import Calculator from './views/shared/Calculator';
 import RemoteDrop from './views/shared/RemoteDrop';
 
 import StudentHome from './views/student/StudentHome';
@@ -215,29 +214,27 @@ function AppContent() {
   const renderAppContent = (id: string, closeSelf: () => void) => {
     switch (id) {
       case 'generator':
-        return <GeneratorHub userClass={userClass} onBack={closeSelf} />;
+        return <GeneratorHub userClass={userClass} />;
       case 'vault':
-        return <CloudVault onBack={closeSelf} defaultClass={userClass} defaultSection={userSection} />;
+        return <CloudVault defaultClass={userClass} defaultSection={userSection} />;
       case 'selector':
-        return <StudentSelector onBack={closeSelf} defaultClass={userClass} defaultSection={userSection} />;
+        return <StudentSelector defaultClass={userClass} defaultSection={userSection} />;
       case 'attendance':
-        return <AttendanceManager onBack={closeSelf} userClass={userClass} userSection={userSection} />;
+        return <AttendanceManager userClass={userClass} userSection={userSection} />;
       case 'lessons':
-        return <LessonPlanner userClass={userClass} onBack={closeSelf} />;
+        return <LessonPlanner userClass={userClass} />;
       case 'submissions':
-        return <Submissions userClass={userClass} userSection={userSection} onBack={closeSelf} />;
+        return <Submissions userClass={userClass} userSection={userSection} />;
       case 'doubt':
-        return <DoubtSolver userClass={userClass} onBack={closeSelf} />;
+        return <DoubtSolver userClass={userClass} />;
       case 'assignment':
-        return <AssignmentAssistant userClass={userClass} onBack={closeSelf} />;
+        return <AssignmentAssistant userClass={userClass} />;
       case 'analyze':
-        return <Analyze userClass={userClass} onBack={closeSelf} />;
+        return <Analyze userClass={userClass} />;
       case 'student-submissions':
-        return <StudentSubmissions userClass={userClass} userSection={userSection} onBack={closeSelf} />;
+        return <StudentSubmissions userClass={userClass} userSection={userSection} />;
       case 'resources':
-        return <Resources role={role || 'student'} userClass={userClass} onBack={closeSelf} />;
-      case 'calculator':
-        return <Calculator onBack={closeSelf} />;
+        return <Resources role={role || 'student'} userClass={userClass} />;
       default:
         return null;
     }

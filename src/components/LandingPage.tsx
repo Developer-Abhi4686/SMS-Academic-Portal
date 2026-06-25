@@ -116,7 +116,7 @@ export default function LandingPage({ onSelectRole, onBack }: LandingPageProps) 
           <div className="relative z-10 grid sm:grid-cols-2 gap-6 md:grid-cols-2 lg:gap-10">
             {/* Student Card */}
             <motion.button
-              whileHover={{ y: -12 }}
+              whileHover={{ y: -3 }}
               transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
               onClick={() => onSelectRole('student')}
               className="group relative glass-panel p-8 sm:p-10 md:p-12 rounded-[3rem] sm:rounded-[4rem] border border-white/60 hover:border-brand/40 transition-all text-left overflow-hidden shadow-sm hover:shadow-[0_45px_90px_-20px_rgba(79,70,229,0.18)] cursor-pointer"
@@ -139,7 +139,7 @@ export default function LandingPage({ onSelectRole, onBack }: LandingPageProps) 
 
             {/* Teacher Card */}
             <motion.button
-              whileHover={{ y: -12 }}
+              whileHover={{ y: -3 }}
               transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
               onClick={() => setShowPasswordPrompt(true)}
               className="group relative glass-panel p-8 sm:p-10 md:p-12 rounded-[3rem] sm:rounded-[4rem] border border-white/60 hover:border-brand/40 transition-all text-left overflow-hidden shadow-sm hover:shadow-[0_45px_90px_-20px_rgba(79,70,229,0.18)] cursor-pointer"

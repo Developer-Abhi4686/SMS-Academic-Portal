@@ -168,7 +168,7 @@ export default function Resources({ role, onBack, userClass }: ResourcesProps) {
               res.onClick ? (
                 <motion.button
                   key={res.name}
-                  whileHover={{ scale: 0.98 }}
+                  whileHover={{ scale: 0.995, y: -2 }}
                   onClick={res.onClick}
                   className="group bg-white p-6 sm:p-10 rounded-[2rem] sm:rounded-[3rem] border border-[#e7e5e4] hover:border-[#1a237e] transition-all flex flex-col justify-between h-[280px] sm:h-[320px] relative overflow-hidden shadow-sm hover:shadow-2xl"
                 >

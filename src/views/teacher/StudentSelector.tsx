@@ -202,13 +202,15 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
       {/* TOP HEADER STATUS */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/60">
         <div className="flex items-center gap-3">
-          <button 
-            onClick={onBack}
-            className="p-2 -ml-2 text-neutral-500 hover:text-slate-950 hover:bg-slate-100 rounded-full transition-all duration-200 cursor-pointer"
-            title="Go Back"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+          {onBack && (
+            <button 
+              onClick={onBack}
+              className="p-2 -ml-2 text-neutral-500 hover:text-slate-950 hover:bg-slate-100 rounded-full transition-all duration-200 cursor-pointer"
+              title="Go Back"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+          )}
           <div className="p-2.5 rounded-xl bg-sky-50 text-sky-600">
             <Users className="w-5 h-5" />
           </div>
@@ -412,10 +414,10 @@ export default function StudentSelector({ onBack, defaultClass, defaultSection }
               </p>
             </div>
 
-            {/* Crucial Single Select Button - Minimalist and easy click */}
             <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              transition={{ type: "spring", stiffness: 150, damping: 25 }}
               onClick={handleSelect}
               disabled={isSpinning || students.length === 0}
               className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-100 disabled:text-slate-400 text-white font-black uppercase tracking-[0.15em] text-[10.5px] flex items-center justify-center gap-2 shadow-md shadow-indigo-600/10 cursor-pointer transition-all border border-indigo-500/20"

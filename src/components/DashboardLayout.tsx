@@ -22,7 +22,6 @@ import {
   LayoutGrid,
   Menu,
   X,
-  Calculator as CalculatorIcon,
   ShieldCheck,
   Search,
   Sparkles,
@@ -116,6 +115,14 @@ export default function DashboardLayout({
 }: DashboardLayoutProps) {
   
   const [isIslandExpanded, setIsIslandExpanded] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
   const [menuBarDropdown, setMenuBarDropdown] = useState<string | null>(null);
   const [showCreditModal, setShowCreditModal] = useState(false);
   const [isWidgetPanelOpen, setIsWidgetPanelOpen] = useState(true);
@@ -331,8 +338,7 @@ export default function DashboardLayout({
       onNavigate("home");
       return "That tool is no longer available on this workstation.";
     } else if (text.includes("calculator") || text.includes("arithmetic") || text.includes("math") || text.includes("calculate") || text.includes("solve equation")) {
-      onNavigate("calculator");
-      return "Sure! Coming up with the Calculator.";
+      return "The Calculator is no longer available on this workstation.";
     } else if (text.includes("student submission") || text.includes("my submission") || text.includes("track submission")) {
       onNavigate("student-submissions");
       return "Opening your personal submissions dashboard.";
@@ -442,7 +448,6 @@ export default function DashboardLayout({
     { id: 'selector', label: 'Student Selector', icon: Users, gradient: 'from-[#1A1A1A] to-[#9E9EB7]' },
     { id: 'generator', label: 'Generators', icon: Sparkles, gradient: 'from-[#6B6998] to-[#1A1A1A]' },
     { id: 'resources', label: 'Resources', icon: Library, gradient: 'from-[#9E9EB7] to-[#6B6998]' },
-    { id: 'calculator', label: 'Calculator', icon: CalculatorIcon, gradient: 'from-[#6B6998] to-[#9E9EB7]' },
     { id: 'submissions', label: 'Submissions', icon: FileText, gradient: 'from-[#1A1A1A] to-[#9E9EB7]' },
     { id: 'vault', label: 'Vault', icon: FolderLock, gradient: 'from-[#9E9EB7] to-[#1A1A1A]' },
   ];
@@ -450,7 +455,6 @@ export default function DashboardLayout({
   const studentMenuItems = [
     { id: 'home', label: 'Finder', icon: LayoutDashboard, gradient: 'from-[#1A1A1A] to-[#6B6998]' },
     { id: 'doubt', label: 'Doubt Solve', icon: HelpCircle, gradient: 'from-[#6B6998] to-[#9E9EB7]' },
-    { id: 'calculator', label: 'Calculator', icon: CalculatorIcon, gradient: 'from-[#1A1A1A] to-[#9E9EB7]' },
     { id: 'assignment', label: 'Assignments', icon: PenTool, gradient: 'from-[#6B6998] to-[#1A1A1A]' },
     { id: 'resources', label: 'Resources', icon: BookOpen, gradient: 'from-[#9E9EB7] to-[#6B6998]' },
     { id: 'analyze', label: 'Analysis', icon: FileSearch, gradient: 'from-[#1A1A1A] to-[#6B6998]' },
@@ -462,7 +466,7 @@ export default function DashboardLayout({
   // Render the widget space when home is active
   const renderDesktopWidgets = () => {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center min-h-[400px] relative overflow-hidden">
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none overflow-hidden">
         {/* Soft powder blue glowing light coming from the back in the center of the text and spreading out */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[380px] h-[380px] rounded-full bg-[radial-gradient(circle,rgba(224,242,254,0.55)_0%,rgba(186,230,253,0.18)_40%,rgba(240,249,255,0.02)_70%)] pointer-events-none blur-2xl opacity-90" />
         
@@ -470,7 +474,7 @@ export default function DashboardLayout({
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.2, type: "spring", stiffness: 80 }}
-          className="text-center select-none relative z-10"
+          className="text-center select-none relative z-10 pointer-events-auto"
         >
           <h1 className="text-5xl md:text-7xl font-sans font-black tracking-tight text-[#1A1A1A] uppercase antialiased drop-shadow-[0_2px_15px_rgba(186,230,253,0.4)]">
             Welcome Back
@@ -605,8 +609,9 @@ export default function DashboardLayout({
           {/* Download App/PWA button */}
           {showInstallButton && onInstall && (
             <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+              transition={{ type: "spring", stiffness: 150, damping: 25 }}
               onClick={onInstall}
               className="bg-[#6B6998] hover:bg-[#5A5887] text-white px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-sans border border-transparent flex items-center gap-1.5 backdrop-blur-md font-bold shadow-sm cursor-pointer transition-all active:scale-95"
             >
@@ -692,7 +697,7 @@ export default function DashboardLayout({
         </AnimatePresence>
       </header>
 
-      {/* 3. Dynamic Island Prototype (Always Available top-center except when an app is in full screen) */}
+      {/* 3. Dynamic Island Prototype (Always Available top-center with smooth spring transitions) */}
       {isIslandExpanded && (
         <div 
           className="fixed inset-0 z-40 bg-transparent cursor-default animate-fade-in"
@@ -700,11 +705,15 @@ export default function DashboardLayout({
         />
       )}
 
-      <div className={`fixed top-11 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 pointer-events-auto transition-all duration-500 ${
-        isCurrentMaximized && !isIslandExpanded 
-          ? 'opacity-0 pointer-events-none scale-90' 
-          : 'opacity-100 pointer-events-auto scale-100'
-      }`}>
+      <motion.div 
+        animate={{ 
+          top: isIslandExpanded ? 56 : (isCurrentMaximized ? 6 : 44),
+          scale: 1,
+          opacity: 1
+        }}
+        transition={{ type: "spring", stiffness: 180, damping: 24 }}
+        className="fixed left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 pointer-events-auto"
+      >
         {/* Left satellite circle for 2nd minimized app */}
         {!isIslandExpanded && runningApps.filter(a => a.minimized).length >= 2 && (
           <motion.div
@@ -733,16 +742,16 @@ export default function DashboardLayout({
           }}
           animate={{ 
             width: isIslandExpanded 
-              ? 340 
+              ? 260 
               : activeApp && !activeApp.minimized
                 ? (isCurrentMaximized ? 64 : 120) 
                 : runningApps.filter(a => a.minimized).length >= 3
                   ? 150 
                   : 120,
-            height: isIslandExpanded ? 160 : (isCurrentMaximized && !activeApp?.minimized ? 20 : 32),
-            borderRadius: isIslandExpanded ? 24 : 9999,
+            height: isIslandExpanded ? 260 : (isCurrentMaximized && !activeApp?.minimized ? 20 : 32),
+            borderRadius: isIslandExpanded ? 24 : 16,
           }}
-          transition={{ type: "spring", stiffness: 350, damping: 30, mass: 0.8 }}
+          transition={{ type: "spring", stiffness: 180, damping: 24, mass: 1 }}
           className={`border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col justify-center overflow-hidden cursor-pointer text-white bg-[#1A1A1A] select-none hover:shadow-[0_0_15px_rgba(107,105,152,0.25)] ${
             isCurrentMaximized && !isIslandExpanded && !activeApp?.minimized ? 'px-2 py-0' : 'px-4 py-2'
           }`}
@@ -799,51 +808,84 @@ export default function DashboardLayout({
                 }}
               >
                 {runningApps.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center py-4">
-                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-widest font-mono">No active apps</p>
-                  </div>
+                  <motion.div 
+                    key="clock-expanded"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex-1 flex flex-col justify-between p-3.5 h-full"
+                  >
+                    <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-2">
+                      <span className="text-[9px] uppercase tracking-[0.25em] font-black text-cyan-400 font-mono">System Clock</span>
+                      <span className="text-[8.5px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider font-mono">Live</span>
+                    </div>
+                    
+                    <div className="flex-1 flex flex-col items-center justify-center py-4 text-center">
+                      <span className="text-2xl font-mono font-bold tracking-widest text-white drop-shadow-[0_0_10px_rgba(34,211,238,0.25)]">
+                        {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+                      </span>
+                      <span className="text-[10px] uppercase font-black tracking-wider text-[#9E9EB7] mt-3 block">
+                        {currentTime.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                      </span>
+                      <div className="mt-4 flex items-center gap-1.5 text-[8px] font-black tracking-widest font-mono text-cyan-400/80 bg-cyan-500/5 px-2.5 py-1 rounded-full border border-cyan-500/10 uppercase">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                        <span>St. Michael's Portal</span>
+                      </div>
+                    </div>
+                  </motion.div>
                 ) : (
-                  <div className="space-y-1.5 flex-1 overflow-y-auto max-h-[140px] pr-1 custom-scrollbar flex flex-col justify-center">
-                    {runningApps.map(app => {
-                      const item = menuItems.find(i => i.id === app.id);
-                      if (!item) return null;
-                      const IconComp = item.icon;
-                      return (
-                        <div 
-                          key={app.id} 
-                          onClick={() => {
-                            onRestoreApp(app.id);
-                            setIsIslandExpanded(false);
-                          }}
-                          className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-3 py-2 rounded-xl transition-all cursor-pointer group/item border border-white/5"
-                        >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className="w-5 h-5 rounded-lg bg-white/10 flex items-center justify-center text-cyan-400 shrink-0">
-                              <IconComp className="w-3.5 h-3.5" />
-                            </div>
-                            <span className="text-[10px] font-black text-white uppercase tracking-wider truncate font-mono">{item.label}</span>
-                            {app.minimized && (
-                              <span className="text-[7.5px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider font-mono shrink-0">MIN</span>
-                            )}
-                          </div>
-                          
-                          <button 
-                            onClick={(e) => { 
-                              e.stopPropagation(); 
-                              onCloseApp(app.id); 
-                              if (runningApps.length <= 1) {
-                                setIsIslandExpanded(false);
-                              }
+                  <motion.div 
+                    key="running-apps-expanded"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex-1 flex flex-col justify-between p-2 h-full"
+                  >
+                    <div className="flex items-center justify-between border-b border-white/5 pb-2 mb-2">
+                      <span className="text-[9px] uppercase tracking-[0.25em] font-black text-[#9E9EB7] font-mono">System Secure</span>
+                      <span className="text-[8.5px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider font-mono">Active</span>
+                    </div>
+                    
+                    <div className="space-y-1.5 flex-1 overflow-y-auto max-h-[170px] pr-1 custom-scrollbar flex flex-col justify-start">
+                      {runningApps.map(app => {
+                        const item = menuItems.find(i => i.id === app.id);
+                        if (!item) return null;
+                        const IconComp = item.icon;
+                        return (
+                          <div 
+                            key={app.id} 
+                            onClick={() => {
+                              onRestoreApp(app.id);
+                              setIsIslandExpanded(false);
                             }}
-                            className="p-1 px-2.5 text-neutral-400 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-all cursor-pointer text-[9px] font-bold uppercase font-mono bg-white/5 hover:bg-white/10"
-                            title="Close App"
+                            className="flex items-center justify-between bg-white/5 hover:bg-white/10 px-3 py-2 rounded-xl transition-all cursor-pointer group/item border border-white/5"
                           >
-                            Close
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="w-5 h-5 rounded-lg bg-white/10 flex items-center justify-center text-cyan-400 shrink-0">
+                                <IconComp className="w-3.5 h-3.5" />
+                              </div>
+                              <span className="text-[10px] font-black text-white uppercase tracking-wider truncate font-mono">{item.label}</span>
+                              {app.minimized && (
+                                <span className="text-[7.5px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider font-mono shrink-0">MIN</span>
+                              )}
+                            </div>
+                            
+                            <button 
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                onCloseApp(app.id); 
+                                if (runningApps.length <= 1) {
+                                  setIsIslandExpanded(false);
+                                }
+                              }}
+                              className="p-1 px-2.5 text-neutral-400 hover:text-red-400 hover:bg-red-500/10 rounded-md transition-all cursor-pointer text-[9px] font-bold uppercase font-mono bg-white/5 hover:bg-white/10"
+                              title="Close App"
+                            >
+                              Close
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
                 )}
               </motion.div>
             )}
@@ -870,7 +912,7 @@ export default function DashboardLayout({
             {React.createElement(menuItems.find(i => i.id === runningApps.filter(a => a.minimized)[0]?.id)?.icon || Sparkles, { className: 'w-4 h-4' })}
           </motion.div>
         )}
-      </div>
+      </motion.div>
 
       {/* 4. Desktop Surface (Only renders when desktop is "tidy" or active app is minimized) */}
       <div 
@@ -1178,12 +1220,12 @@ export default function DashboardLayout({
                     }
                   }}
                   whileHover={{ 
-                    y: -16, 
-                    scale: 1.3, 
-                    filter: "brightness(1.1) drop-shadow(0px 12px 20px rgba(255,255,255,0.15))" 
+                    y: -1, 
+                    scale: 1.015, 
+                    filter: "brightness(1.01) drop-shadow(0px 2px 4px rgba(255,255,255,0.04))" 
                   }}
-                  whileTap={{ scale: 0.85, y: -2 }}
-                  transition={{ type: "spring", stiffness: 350, damping: 14, mass: 0.5 }}
+                  whileTap={{ scale: 0.99, y: 0 }}
+                  transition={{ type: "spring", stiffness: 150, damping: 25 }}
                   className="group relative flex flex-col items-center justify-center animate-none shrink-0"
                 >
                   {/* Custom Mac App container */}
@@ -1215,12 +1257,12 @@ export default function DashboardLayout({
             <motion.button
               onClick={() => setIsMobileFinderOpen(prev => !prev)}
               whileHover={{ 
-                y: -16, 
-                scale: 1.3, 
-                filter: "brightness(1.1) drop-shadow(0px 12px 20px rgba(168,85,247,0.25))" 
+                y: -1, 
+                scale: 1.015, 
+                filter: "brightness(1.01) drop-shadow(0px 2px 4px rgba(168,85,247,0.06))" 
               }}
-              whileTap={{ scale: 0.85, y: -2 }}
-              transition={{ type: "spring", stiffness: 350, damping: 14, mass: 0.5 }}
+              whileTap={{ scale: 0.99, y: 0 }}
+              transition={{ type: "spring", stiffness: 150, damping: 25 }}
               className="group relative flex flex-col items-center justify-center animate-none shrink-0"
               title="Finder"
             >
@@ -1254,12 +1296,12 @@ export default function DashboardLayout({
           <motion.button
             onClick={onLogout}
             whileHover={{ 
-              y: -16, 
-              scale: 1.3, 
-              filter: "brightness(1.1) drop-shadow(0px 12px 20px rgba(0,86,198,0.2))" 
+              y: -1, 
+              scale: 1.015, 
+              filter: "brightness(1.01) drop-shadow(0px 2px 4px rgba(0,86,198,0.05))" 
             }}
-            whileTap={{ scale: 0.85, y: -2 }}
-            transition={{ type: "spring", stiffness: 350, damping: 14, mass: 0.5 }}
+            whileTap={{ scale: 0.99, y: 0 }}
+            transition={{ type: "spring", stiffness: 150, damping: 25 }}
             className="group relative flex flex-col items-center justify-center shrink-0"
           >
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-b from-[#2F80ED] to-[#0056C6] relative overflow-hidden flex items-center justify-center border border-white/20 shadow-lg p-1">
@@ -1305,8 +1347,9 @@ export default function DashboardLayout({
             initial={{ y: 60, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 60, opacity: 0 }}
-            whileHover={{ scale: 1.15, y: -4, backgroundColor: 'rgba(255, 255, 255, 0.4)' }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.03, y: -1, backgroundColor: 'rgba(255, 255, 255, 0.35)' }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 150, damping: 25 }}
             onClick={() => {
               if (isCurrentMaximized) {
                 setIsDockOverrideShowing(true);

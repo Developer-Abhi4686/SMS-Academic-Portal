@@ -172,82 +172,133 @@ export const supabaseStorage = {
   // --------------------------------------------------
   getAttendance: async (userClass: string, section: string, date: string): Promise<any | null> => {
     try {
+      const students = await supabaseStorage.getStudents(userClass, section);
       const { selectedClass, selectedSection } = parseClassAndSection(userClass, section);
+
+      // Query the 'attendance' table
       const { data, error } = await supabase
         .from('attendance')
         .select('*')
         .eq('class', selectedClass)
         .eq('section', selectedSection)
-        .eq('date', date)
-        .maybeSingle();
+        .eq('date', date);
 
       if (error) {
-        if (isTableMissingError(error)) {
-          const all = getLocal<any>('attendance');
-          return all.find(a => a.class === selectedClass && a.section === selectedSection && a.date === date) || null;
-        }
         throw error;
       }
 
-      if (data) {
-        // Records can be a stringified object or a jsonb map
-        const records = typeof data.records === 'string' ? JSON.parse(data.records) : data.records;
-        return { ...data, records };
+      if (data && data.length > 0) {
+        const records: Record<string, 'P' | 'A' | 'L'> = {};
+        data.forEach((row: any) => {
+          const matchedStudent = students.find(
+            s => s.name.trim().toLowerCase() === row.student_name.trim().toLowerCase()
+          );
+          if (matchedStudent) {
+            let statusChar: 'P' | 'A' | 'L' = 'A';
+            if (row.status === 'Present') {
+              statusChar = 'P';
+            } else if (row.status === 'Late') {
+              statusChar = 'L';
+            } else if (row.status === 'Absent') {
+              statusChar = 'A';
+            }
+            records[matchedStudent.id] = statusChar;
+          }
+        });
+        return { records };
+      }
+
+      // If no database data found, fallback to local storage
+      const all = getLocal<any>('attendance');
+      const foundLocal = all.find(
+        a => a.class === selectedClass && a.section === selectedSection && a.date === date
+      );
+      if (foundLocal) {
+        return foundLocal;
       }
       return null;
     } catch (err) {
-      console.error('Error reading attendance:', err);
+      console.error('Error in getAttendance:', err);
       const { selectedClass, selectedSection } = parseClassAndSection(userClass, section);
       const all = getLocal<any>('attendance');
-      return all.find(a => a.class === selectedClass && a.section === selectedSection && a.date === date) || null;
+      return all.find(
+        a => a.class === selectedClass && a.section === selectedSection && a.date === date
+      ) || null;
     }
   },
 
   saveAttendance: async (userClass: string, section: string, date: string, records: Record<string, 'P' | 'A' | 'L'>): Promise<void> => {
+    const studentIds = Object.keys(records);
+    if (studentIds.length === 0) return;
+
     const { selectedClass, selectedSection } = parseClassAndSection(userClass, section);
-    const payload = {
-      class: selectedClass,
-      section: selectedSection,
-      date,
-      records: typeof records === 'object' ? records : JSON.stringify(records),
-      updatedAt: new Date().toISOString()
-    };
 
     try {
-      // Look up if row exists first to handle upsert properly or use upsert with a logical key
-      const { data, error: fetchErr } = await supabase
+      // 1. Try deleting existing rows in the 'attendance' table to prevent duplicates
+      // We wrap this delete operation in a try/catch block because if DELETE policy is missing under RLS,
+      // it might fail, and we want to try to insert anyway.
+      try {
+        const { error: deleteErr } = await supabase
+          .from('attendance')
+          .delete()
+          .eq('class', selectedClass)
+          .eq('section', selectedSection)
+          .eq('date', date);
+        if (deleteErr) {
+          console.warn('Could not clear older attendance records via delete:', deleteErr);
+        }
+      } catch (clearErr) {
+        console.warn('Failed to clear older attendance records:', clearErr);
+      }
+
+      // 2. Fetch students to map student IDs to names
+      const students = await supabaseStorage.getStudents(userClass, section);
+
+      // 3. Map records to insertion rows matching the exact DB schema
+      const rowsToInsert = Object.entries(records).map(([studentId, status]) => {
+        const student = students.find(s => s.id === studentId);
+        const studentName = student ? student.name : 'Unknown Student';
+        
+        let statusStr = 'Absent';
+        if (status === 'P' || status === 'L') statusStr = 'Present';
+        else statusStr = 'Absent';
+
+        return {
+          student_name: studentName,
+          class: selectedClass,
+          section: selectedSection,
+          status: statusStr,
+          date
+        };
+      });
+
+      // 4. Insert into the database and throw error if it fails
+      const { error: insertErr } = await supabase
         .from('attendance')
-        .select('id')
-        .eq('class', selectedClass)
-        .eq('section', selectedSection)
-        .eq('date', date)
-        .maybeSingle();
+        .insert(rowsToInsert);
 
-      if (fetchErr) throw fetchErr;
-
-      if (data?.id) {
-        // Update
-        const { error } = await supabase
-          .from('attendance')
-          .update(payload)
-          .eq('id', data.id);
-        if (error) throw error;
-      } else {
-        // Insert
-        const { error } = await supabase
-          .from('attendance')
-          .insert(payload);
-        if (error) throw error;
+      if (insertErr) {
+        throw insertErr;
       }
+      
+      console.log('Successfully saved attendance to database.');
     } catch (err) {
-      if (isTableMissingError(err)) {
-        console.warn("Supabase 'attendance' table missing, falling back locally.");
-      } else {
-        console.error('Attendance write error:', err);
-      }
+      console.error("Failed saving to database 'attendance' table, falling back to localStorage:", err);
+      
+      // Save to localStorage as a robust offline fallback
       const all = getLocal<any>('attendance');
       const filtered = all.filter(a => !(a.class === selectedClass && a.section === selectedSection && a.date === date));
-      setLocal('attendance', [...filtered, { id: `local-${Date.now()}`, ...payload }]);
+      const localPayload = {
+        class: selectedClass,
+        section: selectedSection,
+        date,
+        records,
+        updatedAt: new Date().toISOString()
+      };
+      setLocal('attendance', [...filtered, { id: `local-${Date.now()}`, ...localPayload }]);
+      
+      // Re-throw so that the caller is aware that the cloud DB save failed
+      throw err;
     }
   },
 

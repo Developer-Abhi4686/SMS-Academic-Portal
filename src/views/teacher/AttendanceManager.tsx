@@ -12,9 +12,13 @@ import {
   Calendar,
   Lock,
   AlertCircle,
-  ArrowRight
+  ArrowRight,
+  Plus
 } from 'lucide-react';
 import { supabaseStorage } from '../../lib/supabaseStorage';
+import { createClient } from '../../../utils/supabase/client';
+
+const supabase = createClient();
 
 interface Student {
   id: string;
@@ -52,6 +56,18 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
   const [selDay, setSelDay] = useState(new Date().getDate().toString());
   const [selMonth, setSelMonth] = useState((new Date().getMonth() + 1).toString());
   const [selYear, setSelYear] = useState(new Date().getFullYear().toString());
+
+  // Add Student State
+  const [isAddingStudent, setIsAddingStudent] = useState(false);
+  const [newStudentName, setNewStudentName] = useState('');
+  const [newStudentClass, setNewStudentClass] = useState(userClass || '');
+  const [newStudentSection, setNewStudentSection] = useState(userSection || '');
+  const [isAddingLoading, setIsAddingLoading] = useState(false);
+
+  useEffect(() => {
+    if (userClass) setNewStudentClass(userClass);
+    if (userSection) setNewStudentSection(userSection);
+  }, [userClass, userSection]);
 
   const getReconstructedDate = () => {
     const d = selDay.padStart(2, '0');
@@ -116,31 +132,79 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
     }
   };
 
+  const handleAddStudent = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newStudentName.trim()) return;
+    setIsAddingLoading(true);
+    try {
+      const selectedClass = (newStudentClass || '').trim().toUpperCase();
+      const selectedSection = (newStudentSection || '').trim().toUpperCase();
+
+      const { data, error } = await supabase.rpc('teacher_add_student', {
+        new_student_name: newStudentName.trim(),
+        new_password: '123456', 
+        new_class: selectedClass,
+        new_section: selectedSection
+      });
+
+      if (error) {
+        console.error("RPC Error adding student:", error);
+        alert(`Failed to add student: ${error.message || JSON.stringify(error)}`);
+        return;
+      }
+
+      alert('Student added successfully!');
+      setNewStudentName('');
+      setError(null);
+      // Refresh local list/view
+      await fetchStudentsAndAttendance();
+    } catch (err: any) {
+      console.error("Failed to add student:", err);
+      alert(`Failed to add student: ${err.message || 'Unknown error'}`);
+    } finally {
+      setIsAddingLoading(false);
+    }
+  };
+
   const markAttendance = (studentId: string, status: 'P' | 'A' | 'L') => {
     if (isSubmitted || !isEditable()) return;
     setAttendance(prev => ({ ...prev, [studentId]: status }));
   };
 
-  const handleSave = async () => {
+  const saveAttendance = async () => {
     setSaving(true);
     try {
-      const targetDate = getReconstructedDate();
-      
+      const formattedDate = getReconstructedDate();
+
       const filteredRecords = students.reduce((acc, s) => {
-        if (attendance[s.id]) acc[s.id] = attendance[s.id];
+        acc[s.id] = attendance[s.id] || 'A';
         return acc;
       }, {} as AttendanceRecord);
 
-      await supabaseStorage.saveAttendance(
-        userClass || '',
-        userSection || '',
-        targetDate,
-        filteredRecords
-      );
+      let savedToCloud = true;
+      let dbErrorMessage = '';
+      try {
+        await supabaseStorage.saveAttendance(
+          userClass || '',
+          userSection || '',
+          formattedDate,
+          filteredRecords
+        );
+      } catch (dbErr: any) {
+        console.error('Cloud database save failed, fallback used:', dbErr);
+        savedToCloud = false;
+        dbErrorMessage = dbErr?.message || JSON.stringify(dbErr);
+      }
 
+      if (savedToCloud) {
+        alert('Attendance saved successfully to database!');
+      } else {
+        alert(`Attendance saved to local cache. (Database save failed: ${dbErrorMessage})`);
+      }
       setIsSubmitted(true);
-    } catch (err) {
-      alert("Submission failed.");
+    } catch (err: any) {
+      console.error('Submission failed:', err);
+      alert(`Submission failed: ${err.message || 'Unknown error'}`);
     } finally {
       setSaving(false);
     }
@@ -226,12 +290,14 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
               {loading ? 'Loading...' : 'Open Attendance'}
             </button>
             
-            <button
-               onClick={onBack}
-               className="w-full bg-white/50 text-muted py-3 sm:py-5 rounded-2xl sm:rounded-3xl font-bold uppercase text-[9px] sm:text-[10px] tracking-[0.3em] border border-white/40 backdrop-blur-sm"
-            >
-              Go Back
-            </button>
+            {onBack && (
+              <button
+                 onClick={onBack}
+                 className="w-full bg-white/50 text-muted py-3 sm:py-5 rounded-2xl sm:rounded-3xl font-bold uppercase text-[9px] sm:text-[10px] tracking-[0.3em] border border-white/40 backdrop-blur-sm"
+              >
+                Go Back
+              </button>
+            )}
           </div>
         </motion.div>
       </div>
@@ -285,7 +351,7 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
             </button>
           ) : (
             <button
-              onClick={handleSave}
+              onClick={saveAttendance}
               disabled={saving}
               className="flex items-center gap-3 bg-primary text-white px-10 py-5 rounded-[2.5rem] font-bold text-[10px] uppercase tracking-[0.3em] hover:bg-primary-dark transition-all shadow-xl shadow-primary/20 disabled:opacity-50"
             >
@@ -311,12 +377,99 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
 
       <div className="glass-panel rounded-[2rem] sm:rounded-[3.5rem] overflow-hidden">
         <div className="px-4 sm:px-8 py-4 sm:py-6 border-b border-white/20 flex justify-between items-center bg-white/20 backdrop-blur-sm">
-          <span className="text-[10px] font-bold text-muted uppercase tracking-[0.3em]">Student List</span>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-bold text-muted uppercase tracking-[0.3em]">Student List</span>
+            {!isAddingStudent && (
+              <button
+                onClick={() => setIsAddingStudent(true)}
+                className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-[9px] font-bold uppercase tracking-wider rounded-lg transition-all flex items-center gap-1 active:scale-95 cursor-pointer animate-fade-in"
+              >
+                <Plus className="w-3 h-3" />
+                Add Student
+              </button>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <UserCheck className="w-4 h-4 text-accent" />
             <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">{students.length} Students</span>
           </div>
         </div>
+        <AnimatePresence>
+          {isAddingStudent && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden bg-white/50 border-b border-white/10"
+            >
+              <form onSubmit={handleAddStudent} className="px-4 sm:px-8 py-6 flex flex-col gap-4">
+                <div className="text-xs font-bold uppercase tracking-wider text-muted mb-1">Add New Student Profile</div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Name field */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-muted uppercase tracking-wider">Full Name</label>
+                    <input
+                      type="text"
+                      value={newStudentName}
+                      onChange={(e) => setNewStudentName(e.target.value)}
+                      placeholder="Enter student's full name"
+                      className="w-full bg-white/80 border border-white/60 px-4 py-2.5 rounded-xl font-medium text-sm focus:border-accent outline-none text-primary"
+                      autoFocus
+                      disabled={isAddingLoading}
+                    />
+                  </div>
+
+                  {/* Class field */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-muted uppercase tracking-wider">Class (Grade)</label>
+                    <input
+                      type="text"
+                      value={newStudentClass}
+                      onChange={(e) => setNewStudentClass(e.target.value)}
+                      placeholder="e.g. IX"
+                      className="w-full bg-white/80 border border-white/60 px-4 py-2.5 rounded-xl font-medium text-sm focus:border-accent outline-none text-primary"
+                      disabled={isAddingLoading}
+                    />
+                  </div>
+
+                  {/* Section field */}
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-[10px] font-bold text-muted uppercase tracking-wider">Section</label>
+                    <input
+                      type="text"
+                      value={newStudentSection}
+                      onChange={(e) => setNewStudentSection(e.target.value)}
+                      placeholder="e.g. A"
+                      className="w-full bg-white/80 border border-white/60 px-4 py-2.5 rounded-xl font-medium text-sm focus:border-accent outline-none text-primary"
+                      disabled={isAddingLoading}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end items-center gap-3 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddingStudent(false);
+                      setNewStudentName('');
+                    }}
+                    className="px-4 py-2.5 bg-white/50 hover:bg-white text-muted border border-white/60 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                    disabled={isAddingLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isAddingLoading || !newStudentName.trim() || !newStudentClass.trim() || !newStudentSection.trim()}
+                    className="px-6 py-2.5 bg-primary text-white font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-primary-dark transition-all disabled:opacity-50 cursor-pointer flex items-center gap-2"
+                  >
+                    {isAddingLoading ? 'Saving...' : 'Add Student'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <div className="divide-y divide-white/10">
           {students.map((student, idx) => (
             <motion.div 
@@ -332,7 +485,6 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
                 </div>
                 <div>
                   <h4 className="font-bold text-primary text-base sm:text-lg tracking-tight">{student.fullName}</h4>
-                  <div className="text-[9px] font-bold text-muted uppercase tracking-widest mt-0.5">Reference: {student.id.slice(-6)}</div>
                 </div>
               </div>
 
@@ -355,9 +507,6 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
                     `}
                   >
                     {opt.value}
-                    {attendance[student.id] === opt.value && (
-                       <motion.div layoutId={`active-dot-${student.id}`} className="absolute -top-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-white rounded-full border-2 border-inherit" />
-                    )}
                   </button>
                 ))}
               </div>
