@@ -140,18 +140,11 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
       const selectedClass = (newStudentClass || '').trim().toUpperCase();
       const selectedSection = (newStudentSection || '').trim().toUpperCase();
 
-      const { data, error } = await supabase.rpc('teacher_add_student', {
-        new_student_name: newStudentName.trim(),
-        new_password: '123456', 
-        new_class: selectedClass,
-        new_section: selectedSection
-      });
-
-      if (error) {
-        console.error("RPC Error adding student:", error);
-        alert(`Failed to add student: ${error.message || JSON.stringify(error)}`);
-        return;
-      }
+      await supabaseStorage.addStudent(
+        newStudentName.trim(),
+        selectedClass,
+        selectedSection
+      );
 
       alert('Student added successfully!');
       setNewStudentName('');
