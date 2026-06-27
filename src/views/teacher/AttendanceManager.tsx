@@ -33,6 +33,7 @@ interface AttendanceManagerProps {
   onBack?: () => void;
   userClass: string | null;
   userSection: string | null;
+  role?: string;
 }
 
 interface StudentStats {
@@ -43,7 +44,7 @@ interface StudentStats {
   percentage: number;
 }
 
-export default function AttendanceManager({ onBack, userClass, userSection }: AttendanceManagerProps) {
+export default function AttendanceManager({ onBack, userClass, userSection, role = 'teacher' }: AttendanceManagerProps) {
   const [students, setStudents] = useState<Student[]>([]);
   const [attendance, setAttendance] = useState<AttendanceRecord>({});
   const [loading, setLoading] = useState(false);
@@ -207,8 +208,9 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
     return (
       <div className="max-w-xl mx-auto py-6 sm:py-12 px-4 sm:px-6">
         <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: 30, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: "spring", stiffness: 300, damping: 28, mass: 0.8 }}
           className="glass-panel p-6 sm:p-10 rounded-3xl sm:rounded-[3.5rem] space-y-8 sm:space-y-12 shadow-2xl"
         >
           <header className="flex flex-col items-center text-center gap-4">
@@ -266,6 +268,8 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
                 <motion.div 
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ type: "spring", stiffness: 320, damping: 30 }}
                   className="bg-red-50 text-red-600 p-4 rounded-xl sm:rounded-2xl flex items-center gap-3 border border-red-100"
                 >
                   <AlertCircle className="w-5 h-5 shrink-0" />
@@ -306,6 +310,10 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
     );
   }
 
+  const displayedStudents = role === 'student'
+    ? students.filter(student => attendance[student.id] === 'P')
+    : students;
+
   return (
     <div className="max-w-3xl mx-auto space-y-10 pb-20">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-4">
@@ -328,37 +336,40 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
-          {!isEditable() ? (
-            <div className="flex items-center gap-2 bg-white/40 backdrop-blur-sm px-6 py-4 rounded-[2rem] font-bold text-[10px] uppercase tracking-widest border border-white/20 text-muted">
-              <Lock className="w-4 h-4 text-accent" />
-              Locked (Past 24h)
-            </div>
-          ) : isSubmitted ? (
-            <button
-              onClick={() => setIsSubmitted(false)}
-              className="flex items-center gap-3 bg-white/60 hover:bg-white px-8 py-4 rounded-[2rem] font-bold text-[10px] uppercase tracking-widest transition-all border border-white shadow-sm text-primary"
-            >
-              <Edit3 className="w-4 h-4 text-accent" />
-              Edit
-            </button>
-          ) : (
-            <button
-              onClick={saveAttendance}
-              disabled={saving}
-              className="flex items-center gap-3 bg-primary text-white px-10 py-5 rounded-[2.5rem] font-bold text-[10px] uppercase tracking-[0.3em] hover:bg-primary-dark transition-all shadow-xl shadow-primary/20 disabled:opacity-50"
-            >
-              {saving ? <RotateCcw className="w-4 h-4 animate-spin text-accent" /> : <Save className="w-4 h-4 text-accent" />}
-              {saving ? 'Saving...' : 'Save Attendance'}
-            </button>
-          )}
-        </div>
+        {role !== 'student' && (
+          <div className="flex items-center gap-4">
+            {!isEditable() ? (
+              <div className="flex items-center gap-2 bg-white/40 backdrop-blur-sm px-6 py-4 rounded-[2rem] font-bold text-[10px] uppercase tracking-widest border border-white/20 text-muted">
+                <Lock className="w-4 h-4 text-accent" />
+                Locked (Past 24h)
+              </div>
+            ) : isSubmitted ? (
+              <button
+                onClick={() => setIsSubmitted(false)}
+                className="flex items-center gap-3 bg-white/60 hover:bg-white px-8 py-4 rounded-[2rem] font-bold text-[10px] uppercase tracking-widest transition-all border border-white shadow-sm text-primary"
+              >
+                <Edit3 className="w-4 h-4 text-accent" />
+                Edit
+              </button>
+            ) : (
+              <button
+                onClick={saveAttendance}
+                disabled={saving}
+                className="flex items-center gap-3 bg-primary text-white px-10 py-5 rounded-[2.5rem] font-bold text-[10px] uppercase tracking-[0.3em] hover:bg-primary-dark transition-all shadow-xl shadow-primary/20 disabled:opacity-50"
+              >
+                {saving ? <RotateCcw className="w-4 h-4 animate-spin text-accent" /> : <Save className="w-4 h-4 text-accent" />}
+                {saving ? 'Saving...' : 'Save Attendance'}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
-      {!isEditable() && (
+      {role !== 'student' && !isEditable() && (
         <motion.div 
-          initial={{ opacity: 0, y: -10 }}
+          initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 320, damping: 28 }}
           className="mx-4 glass-panel bg-amber-500/5 border-amber-500/20 p-6 rounded-[2rem] flex items-center gap-4"
         >
            <AlertCircle className="w-6 h-6 text-amber-600" />
@@ -372,7 +383,7 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
         <div className="px-4 sm:px-8 py-4 sm:py-6 border-b border-white/20 flex justify-between items-center bg-white/20 backdrop-blur-sm">
           <div className="flex items-center gap-3">
             <span className="text-[10px] font-bold text-muted uppercase tracking-[0.3em]">Student List</span>
-            {!isAddingStudent && (
+            {role !== 'student' && !isAddingStudent && (
               <button
                 onClick={() => setIsAddingStudent(true)}
                 className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 text-[9px] font-bold uppercase tracking-wider rounded-lg transition-all flex items-center gap-1 active:scale-95 cursor-pointer animate-fade-in"
@@ -384,15 +395,18 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
           </div>
           <div className="flex items-center gap-2">
             <UserCheck className="w-4 h-4 text-accent" />
-            <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">{students.length} Students</span>
+            <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em]">
+              {role === 'student' ? `${displayedStudents.length} Present` : `${students.length} Students`}
+            </span>
           </div>
         </div>
         <AnimatePresence>
-          {isAddingStudent && (
+          {role !== 'student' && isAddingStudent && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
+              transition={{ type: "spring", stiffness: 340, damping: 30, mass: 0.8 }}
               className="overflow-hidden bg-white/50 border-b border-white/10"
             >
               <form onSubmit={handleAddStudent} className="px-4 sm:px-8 py-6 flex flex-col gap-4">
@@ -464,74 +478,95 @@ export default function AttendanceManager({ onBack, userClass, userSection }: At
           )}
         </AnimatePresence>
         <div className="divide-y divide-white/10">
-          {students.map((student, idx) => (
-            <motion.div 
-              key={student.id} 
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: idx * 0.05 }}
-              className="px-4 sm:px-8 py-4 sm:py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-white/30 transition-colors group"
-            >
-              <div className="flex items-center gap-4 sm:gap-6 w-full sm:w-auto">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl sm:rounded-3xl bg-primary/5 group-hover:bg-primary/10 flex items-center justify-center text-primary font-bold text-lg sm:text-xl border border-primary/5 transition-all shadow-inner shrink-0">
-                  {student.fullName.charAt(0)}
+          {displayedStudents.length === 0 && role === 'student' ? (
+            <div className="px-4 sm:px-8 py-12 text-center text-muted font-bold text-xs uppercase tracking-widest">
+              No present students found for this date.
+            </div>
+          ) : (
+            displayedStudents.map((student, idx) => (
+              <motion.div 
+                key={student.id} 
+                initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ 
+                  type: "spring", 
+                  stiffness: 320, 
+                  damping: 28, 
+                  mass: 0.8,
+                  delay: Math.min(idx * 0.015, 0.25)
+                }}
+                className="px-4 sm:px-8 py-4 sm:py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-white/30 transition-colors group"
+              >
+                <div className="flex items-center gap-4 sm:gap-6 w-full sm:w-auto">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl sm:rounded-3xl bg-primary/5 group-hover:bg-primary/10 flex items-center justify-center text-primary font-bold text-lg sm:text-xl border border-primary/5 transition-all shadow-inner shrink-0">
+                    {student.fullName.charAt(0)}
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-primary text-base sm:text-lg tracking-tight">{student.fullName}</h4>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-bold text-primary text-base sm:text-lg tracking-tight">{student.fullName}</h4>
-                </div>
-              </div>
 
-              <div className="flex gap-2 sm:gap-3 w-full sm:w-auto justify-end">
-                {[
-                  { value: 'P', color: 'bg-emerald-500', label: 'Present' },
-                  { value: 'A', color: 'bg-rose-500', label: 'Absent' },
-                  { value: 'L', color: 'bg-amber-500', label: 'Late' }
-                ].map((opt) => (
-                  <button
-                    key={opt.value}
-                    disabled={isSubmitted || !isEditable()}
-                    onClick={() => markAttendance(student.id, opt.value as any)}
-                    className={`
-                      w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold text-xs sm:text-sm transition-all relative shrink-0
-                      ${attendance[student.id] === opt.value 
-                        ? `${opt.color} text-white shadow-lg scale-105 sm:scale-110 border-transparent` 
-                        : 'bg-white/40 text-muted border border-white/60 hover:border-accent hover:text-accent'}
-                      ${(isSubmitted || !isEditable()) ? 'cursor-not-allowed opacity-40' : 'cursor-pointer active:scale-90'}
-                    `}
-                  >
-                    {opt.value}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          ))}
+                <div className="flex gap-2 sm:gap-3 w-full sm:w-auto justify-end">
+                  {role === 'student' ? (
+                    <div className="bg-emerald-500 text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm">
+                      <Check className="w-4 h-4 text-white" />
+                      <span>Present</span>
+                    </div>
+                  ) : (
+                    [
+                      { value: 'P', color: 'bg-emerald-500', label: 'Present' },
+                      { value: 'A', color: 'bg-rose-500', label: 'Absent' },
+                      { value: 'L', color: 'bg-amber-500', label: 'Late' }
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        disabled={isSubmitted || !isEditable()}
+                        onClick={() => markAttendance(student.id, opt.value as any)}
+                        className={`
+                          w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center font-bold text-xs sm:text-sm transition-all relative shrink-0
+                          ${attendance[student.id] === opt.value 
+                            ? `${opt.color} text-white shadow-lg scale-105 sm:scale-110 border-transparent` 
+                            : 'bg-white/40 text-muted border border-white/60 hover:border-accent hover:text-accent'}
+                          ${(isSubmitted || !isEditable()) ? 'cursor-not-allowed opacity-40' : 'cursor-pointer active:scale-90'}
+                        `}
+                      >
+                        {opt.value}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </motion.div>
+            ))
+          )}
         </div>
       </div>
 
-      <div className="mx-4 glass-panel p-6 sm:p-10 rounded-2xl sm:rounded-[3rem] flex flex-col md:flex-row items-center justify-center gap-6 sm:gap-10">
-        <div className="flex items-center gap-6 sm:gap-11">
-          <div className="text-center">
-            <p className="text-2xl sm:text-4xl font-bold tracking-tighter text-emerald-500">
-              {students.filter(s => attendance[s.id] === 'P').length}
-            </p>
-            <p className="text-[9px] sm:text-[10px] font-bold text-muted uppercase tracking-[0.2em] mt-1 sm:mt-2">Present</p>
-          </div>
-          <div className="w-px h-10 sm:h-12 bg-white/20" />
-          <div className="text-center">
-            <p className="text-2xl sm:text-4xl font-bold tracking-tighter text-rose-500">
-              {students.filter(s => attendance[s.id] === 'A').length}
-            </p>
-            <p className="text-[9px] sm:text-[10px] font-bold text-muted uppercase tracking-[0.2em] mt-1 sm:mt-2">Absent</p>
-          </div>
-          <div className="w-px h-10 sm:h-12 bg-white/20" />
-          <div className="text-center">
-            <p className="text-2xl sm:text-4xl font-bold tracking-tighter text-amber-500">
-              {students.filter(s => attendance[s.id] === 'L').length}
-            </p>
-            <p className="text-[9px] sm:text-[10px] font-bold text-muted uppercase tracking-[0.2em] mt-1 sm:mt-2">Late</p>
+      {role !== 'student' && (
+        <div className="mx-4 glass-panel p-6 sm:p-10 rounded-2xl sm:rounded-[3rem] flex flex-col md:flex-row items-center justify-center gap-6 sm:gap-10">
+          <div className="flex items-center gap-6 sm:gap-11">
+            <div className="text-center">
+              <p className="text-2xl sm:text-4xl font-bold tracking-tighter text-emerald-500">
+                {students.filter(s => attendance[s.id] === 'P').length}
+              </p>
+              <p className="text-[9px] sm:text-[10px] font-bold text-muted uppercase tracking-[0.2em] mt-1 sm:mt-2">Present</p>
+            </div>
+            <div className="w-px h-10 sm:h-12 bg-white/20" />
+            <div className="text-center">
+              <p className="text-2xl sm:text-4xl font-bold tracking-tighter text-rose-500">
+                {students.filter(s => attendance[s.id] === 'A').length}
+              </p>
+              <p className="text-[9px] sm:text-[10px] font-bold text-muted uppercase tracking-[0.2em] mt-1 sm:mt-2">Absent</p>
+            </div>
+            <div className="w-px h-10 sm:h-12 bg-white/20" />
+            <div className="text-center">
+              <p className="text-2xl sm:text-4xl font-bold tracking-tighter text-amber-500">
+                {students.filter(s => attendance[s.id] === 'L').length}
+              </p>
+              <p className="text-[9px] sm:text-[10px] font-bold text-muted uppercase tracking-[0.2em] mt-1 sm:mt-2">Late</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

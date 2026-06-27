@@ -224,7 +224,7 @@ export default function DashboardLayout({
         };
 
         rec.onerror = (err: any) => {
-          console.error("Speech recognition error:", err);
+          console.warn("Speech recognition notice (non-fatal):", err);
           setIsListening(false);
         };
 
@@ -458,6 +458,7 @@ export default function DashboardLayout({
     { id: 'assignment', label: 'Assignments', icon: PenTool, gradient: 'from-[#6B6998] to-[#1A1A1A]' },
     { id: 'resources', label: 'Resources', icon: BookOpen, gradient: 'from-[#9E9EB7] to-[#6B6998]' },
     { id: 'analyze', label: 'Analysis', icon: FileSearch, gradient: 'from-[#1A1A1A] to-[#6B6998]' },
+    { id: 'attendance', label: 'Attendance', icon: ClipboardList, gradient: 'from-[#6B6998] to-[#9E9EB7]' },
     { id: 'student-submissions', label: 'Submissions', icon: GraduationCap, gradient: 'from-[#6B6998] to-[#9E9EB7]' },
   ];
 
@@ -711,7 +712,7 @@ export default function DashboardLayout({
           scale: 1,
           opacity: 1
         }}
-        transition={{ type: "spring", stiffness: 180, damping: 24 }}
+        transition={{ type: "spring", stiffness: 120, damping: 19, mass: 0.9 }}
         className="fixed left-1/2 -translate-x-1/2 z-[100] flex items-center gap-2 pointer-events-auto"
       >
         {/* Left satellite circle for 2nd minimized app */}
@@ -720,7 +721,7 @@ export default function DashboardLayout({
             initial={{ scale: 0, opacity: 0, x: 12 }}
             animate={{ scale: 1, opacity: 1, x: 0 }}
             exit={{ scale: 0, opacity: 0, x: 12 }}
-            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+            transition={{ type: "spring", stiffness: 130, damping: 19, mass: 0.8 }}
             onClick={(e) => {
               e.stopPropagation();
               const mApps = runningApps.filter(a => a.minimized);
@@ -751,7 +752,7 @@ export default function DashboardLayout({
             height: isIslandExpanded ? 260 : (isCurrentMaximized && !activeApp?.minimized ? 20 : 32),
             borderRadius: isIslandExpanded ? 24 : 16,
           }}
-          transition={{ type: "spring", stiffness: 180, damping: 24, mass: 1 }}
+          transition={{ type: "spring", stiffness: 120, damping: 19, mass: 0.9 }}
           className={`border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col justify-center overflow-hidden cursor-pointer text-white bg-[#1A1A1A] select-none hover:shadow-[0_0_15px_rgba(107,105,152,0.25)] ${
             isCurrentMaximized && !isIslandExpanded && !activeApp?.minimized ? 'px-2 py-0' : 'px-4 py-2'
           }`}
@@ -898,7 +899,7 @@ export default function DashboardLayout({
             initial={{ scale: 0, opacity: 0, x: -12 }}
             animate={{ scale: 1, opacity: 1, x: 0 }}
             exit={{ scale: 0, opacity: 0, x: -12 }}
-            transition={{ type: "spring", stiffness: 350, damping: 25 }}
+            transition={{ type: "spring", stiffness: 130, damping: 19, mass: 0.8 }}
             onClick={(e) => {
               e.stopPropagation();
               const mApps = runningApps.filter(a => a.minimized);
@@ -963,7 +964,7 @@ export default function DashboardLayout({
         <motion.nav 
           initial={{ y: 150, opacity: 0 }}
           animate={{ y: isActualDockHidden ? 150 : 0, opacity: isActualDockHidden ? 0 : 1 }}
-          transition={{ type: "spring", stiffness: 220, damping: 26 }}
+          transition={{ type: "spring", stiffness: 110, damping: 18, mass: 0.95 }}
           className="px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-[1.75rem] sm:rounded-[2.5rem] bg-white/10 border border-white/20 backdrop-blur-[35px] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15),inset_0_1px_1px_rgba(255,255,255,0.2)] flex items-end gap-2 sm:gap-3.5 select-none relative max-w-full overflow-x-auto scrollbar-none pb-3 sm:pb-3.5"
         >
           {(() => {

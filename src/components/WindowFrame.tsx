@@ -30,6 +30,21 @@ export default function WindowFrame({
   const dragControls = useDragControls();
   const isMaximized = true;
 
+  // Track whether to render the heavy content (hide via display: none when fully minimized)
+  const [shouldRenderContent, setShouldRenderContent] = React.useState(!app.minimized);
+
+  React.useEffect(() => {
+    if (!app.minimized) {
+      setShouldRenderContent(true);
+    }
+  }, [app.minimized]);
+
+  const handleAnimationComplete = () => {
+    if (app.minimized) {
+      setShouldRenderContent(false);
+    }
+  };
+
   // We start dragging on pointer down inside the title bar
   const handlePointerDown = (e: React.PointerEvent) => {
     // Only drag with primary mouse button
@@ -56,19 +71,33 @@ export default function WindowFrame({
       dragConstraints={dragConstraintsRef}
       initial={{ 
         opacity: 0, 
-        scale: 0.94, 
-        x: !isMaximized ? index * 24 : 0, 
-        y: !isMaximized ? index * 18 : 0 
+        scale: 0.85, 
+        y: 120, // Slides up from bottom Dock
       }}
       animate={{ 
         opacity: app.minimized ? 0 : 1,
         scale: app.minimized ? 0.05 : 1,
+        y: app.minimized ? 420 : 0, // Sucks down into the Dock
         pointerEvents: app.minimized ? 'none' : 'auto',
         zIndex: app.zIndex,
       }}
-      exit={{ opacity: 0, scale: 0.1, y: -350 }}
-      transition={{ type: "spring", stiffness: 220, damping: 25 }}
-      style={{ position: 'absolute' }}
+      exit={{ 
+        opacity: 0, 
+        scale: 0.85, 
+        y: 120, // MacBook style close drops back to Dock
+      }}
+      onAnimationComplete={handleAnimationComplete}
+      transition={{ 
+        type: "spring", 
+        stiffness: 130, 
+        damping: 20, 
+        mass: 0.9,
+      }}
+      style={{ 
+        position: 'absolute',
+        transformOrigin: 'bottom center', // Perfect for genie-like dock minimizes
+        willChange: 'transform, opacity' // Hardware accelerated pipeline
+      }}
       className={`${holderClasses} ${isFocused ? 'ring-1 ring-cyan-500/30 rounded-[2.5rem]' : ''}`}
       onPointerDown={onFocus}
     >
@@ -120,7 +149,10 @@ export default function WindowFrame({
         </div>
 
         {/* Main scrollable body panel for custom rendered tools */}
-        <div className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-12 py-4 sm:py-10 custom-scrollbar scroll-smooth bg-white/35 text-[#1A1A1A] select-text">
+        <div 
+          style={{ display: shouldRenderContent ? 'block' : 'none' }}
+          className="flex-1 overflow-y-auto px-3 sm:px-6 md:px-12 py-4 sm:py-10 custom-scrollbar scroll-smooth bg-white/35 text-[#1A1A1A] select-text"
+        >
           {children}
         </div>
       </div>

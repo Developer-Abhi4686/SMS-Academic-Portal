@@ -220,7 +220,7 @@ function AppContent() {
       case 'selector':
         return <StudentSelector defaultClass={userClass} defaultSection={userSection} />;
       case 'attendance':
-        return <AttendanceManager userClass={userClass} userSection={userSection} />;
+        return <AttendanceManager userClass={userClass} userSection={userSection} role={role} />;
       case 'lessons':
         return <LessonPlanner userClass={userClass} />;
       case 'submissions':
@@ -537,10 +537,10 @@ function AppContent() {
               ) : (
                 <motion.div
                   key={`${role}-${location.pathname}`}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -15 }}
-                  transition={{ duration: 0.15 }}
+                  initial={{ opacity: 0, y: 12, scale: 0.995 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -12, scale: 0.995 }}
+                  transition={{ type: "spring", stiffness: 110, damping: 18, mass: 0.8 }}
                   className="p-6"
                 >
                   <Routes>
